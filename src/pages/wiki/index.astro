@@ -1,0 +1,74 @@
+---
+// src/pages/wiki/index.astro
+import BaseHead from '../../components/BaseHead.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { getCollection } from 'astro:content';
+
+// 1. Fetch all wiki entries
+const wikiEntries = await getCollection('wiki');
+
+// 2. Sort them by creation date (newest first)
+wikiEntries.sort((a, b) => b.data.created.valueOf() - a.data.created.valueOf());
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title="Wiki Directory" description="An index of all my knowledge base entries." />
+		<style>
+			.wiki-list {
+				list-style-type: none;
+				padding: 0;
+			}
+			.wiki-item {
+				margin-bottom: 1rem;
+				padding-bottom: 1rem;
+				border-bottom: 1px solid #e2e8f0;
+			}
+			.wiki-item a {
+				font-size: 1.25rem;
+				font-weight: bold;
+				text-decoration: none;
+				color: #0f172a;
+			}
+			.wiki-item a:hover {
+				color: #3b82f6;
+			}
+			.meta {
+				display: flex;
+				gap: 1rem;
+				font-size: 0.85rem;
+				color: #64748b;
+				margin-top: 0.25rem;
+			}
+			.folder-badge {
+				background: #f1f5f9;
+				padding: 0.1rem 0.4rem;
+				border-radius: 4px;
+				font-family: monospace;
+			}
+		</style>
+	</head>
+	<body>
+		<Header />
+		<main style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;">
+			<h1>Wiki Directory 📚</h1>
+			<p>An automatically generated list of everything in my knowledge base.</p>
+
+			<ul class="wiki-list">
+				{wikiEntries.map(entry => (
+					<li class="wiki-item">
+						<a href={`/wiki/${entry.id}`}>{entry.data.title}</a>
+						<div class="meta">
+							<span>📅 {new Date(entry.data.created).toLocaleDateString()}</span>
+							{/* This shows the folder path! e.g., school/5th-semester */}
+							<span class="folder-badge">📁 {entry.id.split('/').slice(0, -1).join('/') || 'root'}</span>
+						</div>
+					</li>
+				))}
+			</ul>
+		</main>
+		<Footer />
+	</body>
+</html>

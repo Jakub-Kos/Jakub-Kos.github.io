@@ -1,0 +1,74 @@
+---
+// src/layouts/WikiLayout.astro
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+const { title, created, learnedFrom, connectsTo } = Astro.props;
+---
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={`Wiki entry for ${title}`} />
+		<style>
+            .wiki-container {
+                display: flex;
+                gap: 2rem;
+                width: 100%;
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 2em 1em;
+                align-items: flex-start;
+            }
+            .content {
+                flex: 3;
+                min-width: 0; /* Prevents long code blocks from breaking the layout */
+            }
+            .infobox {
+                flex: 1;
+                background: #f4f4f5;
+                border: 1px solid #e4e4e7;
+                border-radius: 8px;
+                padding: 1.5rem;
+                position: sticky;
+                top: 2rem;
+            }
+            .infobox h3 { margin-top: 0; font-size: 1.2rem; }
+            .infobox ul { padding-left: 1.2rem; margin-bottom: 0; }
+            .tag {
+                display: inline-block;
+                background: #e2e8f0;
+                padding: 0.2rem 0.5rem;
+                border-radius: 4px;
+                font-size: 0.85rem;
+                margin: 0.2rem 0;
+            }
+        </style>
+	</head>
+	<body>
+		<Header />
+		<main class="wiki-container">
+			<article class="content">
+				<h1>{title}</h1>
+				<hr />
+				<slot /> </article>
+
+			<aside class="infobox">
+				<h3>Entry Metadata</h3>
+				<p><strong>Created:</strong> {new Date(created).toLocaleDateString()}</p>
+				{learnedFrom && <p><strong>Source:</strong> {learnedFrom}</p>}
+
+				{connectsTo.length > 0 && (
+					<div>
+						<strong>Connects To:</strong>
+						<ul>
+							{connectsTo.map((link: string) => (
+								<li><span class="tag">{link}</span></li>
+							))}
+						</ul>
+					</div>
+				)}
+			</aside>
+		</main>
+		<Footer />
+	</body>
+</html>

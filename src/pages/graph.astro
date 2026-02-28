@@ -1,0 +1,48 @@
+---
+// src/pages/graph.astro
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import GraphVisualizer from '../components/GraphVisualizer.tsx';
+import { getCollection } from 'astro:content';
+
+const allPages = await getCollection('wiki');
+
+const existingNodeIds = new Set(allPages.map(page => page.data.title));
+
+// 1. ADD URL TO REAL PAGES
+const nodes = allPages.map(page => ({
+    id: page.data.title,
+    group: 'real-page',
+    url: `/wiki/${page.id}`
+}));
+
+const links = [];
+
+allPages.forEach(page => {
+    page.data.connectsTo.forEach(target => {
+        if (!existingNodeIds.has(target)) {
+            nodes.push({ id: target, group: 'ghost-page' });
+            existingNodeIds.add(target);
+        }
+        links.push({ source: page.data.title, target: target });
+    });
+});
+
+const graphData = { nodes, links };
+---
+<html lang="en">
+	<head>
+		<BaseHead title="Knowledge Graph" description="My digital garden mind map" />
+	</head>
+	<body>
+		<Header />
+		<main style="max-width: 1200px; margin: 0 auto; padding: 2rem 1rem;">
+			<h1>My Knowledge Map</h1>
+			<p>Explore the connections between my notes and projects.</p>
+
+			<GraphVisualizer client:only="solid-js" data={graphData} />
+		</main>
+		<Footer />
+	</body>
+</html>
