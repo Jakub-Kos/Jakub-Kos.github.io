@@ -12,8 +12,8 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
-const { Content } = await render(entry);
+const { Content, headings } = await render(entry);
 ---
-<WikiLayout {...entry.data}>
+<WikiLayout id={entry.id} filePath={entry.filePath} headings={headings} {...entry.data}>
 	<Content />
 </WikiLayout>

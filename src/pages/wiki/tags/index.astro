@@ -1,0 +1,43 @@
+---
+import BaseHead from '../../../components/BaseHead.astro';
+import Header from '../../../components/Header.astro';
+import Footer from '../../../components/Footer.astro';
+import { getCollection } from 'astro:content';
+
+const wikiEntries = await getCollection('wiki');
+
+const counts = new Map<string, number>();
+for (const entry of wikiEntries) {
+	for (const tag of entry.data.tags) {
+		counts.set(tag, (counts.get(tag) ?? 0) + 1);
+	}
+}
+const tags = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title="Tags" description="Every tag used across the knowledge base." />
+	</head>
+	<body>
+		<Header />
+		<main style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;">
+			<h1>Tags</h1>
+			<p>Browse the knowledge base by topic instead of by folder.</p>
+			<ul style="list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.75rem;">
+				{tags.map(([tag, count]) => (
+					<li>
+						<a
+							href={`/wiki/tags/${tag}`}
+							style="display: inline-block; background: #e2e8f0; padding: 0.4rem 0.8rem; border-radius: 999px; text-decoration: none; color: #0f172a;"
+						>
+							{tag} <span style="color: #64748b;">({count})</span>
+						</a>
+					</li>
+				))}
+			</ul>
+			{tags.length === 0 && <p>No tags yet.</p>}
+		</main>
+		<Footer />
+	</body>
+</html>

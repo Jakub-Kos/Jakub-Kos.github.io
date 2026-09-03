@@ -2,6 +2,9 @@
 title: "Bachelor Thesis: Simulation and Optimization of Road Closures"
 created: 2026-02-27
 learnedFrom: "MFF UK"
+type: thesis
+tags: ["thesis", "simulation", "traffic", "university"]
+institution: "MFF UK"
 connectsTo: ["Notes"]
 ---
 # My Bachelor Thesis

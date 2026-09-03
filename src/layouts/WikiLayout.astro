@@ -1,16 +1,58 @@
 ---
 // src/layouts/WikiLayout.astro
+import katexMainRegular from 'katex/dist/fonts/KaTeX_Main-Regular.woff2?url';
+import katexMathItalic from 'katex/dist/fonts/KaTeX_Math-Italic.woff2?url';
+import katexMainBold from 'katex/dist/fonts/KaTeX_Main-Bold.woff2?url';
+import { getCollection } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import { typeMeta, getAncestorFolders, folderLabel, siblingsOf } from '../utils/wiki';
+import { GITHUB_REPO, GITHUB_BRANCH } from '../consts';
 
-const { title, created, learnedFrom, connectsTo } = Astro.props;
+const {
+	id,
+	title,
+	created,
+	updated,
+	learnedFrom,
+	tags,
+	type,
+	institution,
+	semester,
+	ects,
+	connectsTo,
+	filePath,
+	headings = [],
+} = Astro.props;
+
+const allPages = await getCollection('wiki');
+const titleToUrl = new Map(allPages.map((p) => [p.data.title, `/wiki/${p.id}`]));
+
+const currentEntry = allPages.find((p) => p.id === id);
+const siblings = currentEntry ? siblingsOf(currentEntry, allPages) : [];
+const breadcrumbs = id ? getAncestorFolders(id) : [];
+const backlinks = allPages.filter((p) => p.id !== id && p.data.connectsTo.includes(title));
+
+const meta = typeMeta(type);
+const historyUrl = filePath
+	? `https://github.com/${GITHUB_REPO}/commits/${GITHUB_BRANCH}/${filePath}`
+	: null;
+// Skip the h1 (that's the page title) and anything deeper than h3 to keep
+// the outline usable rather than exhaustive.
+const tocHeadings = headings.filter((h: { depth: number }) => h.depth >= 2 && h.depth <= 3);
 ---
 <html lang="en">
 	<head>
 		<BaseHead title={title} description={`Wiki entry for ${title}`} />
+		<!-- Preload the most common KaTeX glyph fonts so math doesn't
+		     flash in a fallback serif before swapping to the real thing. -->
+		<link rel="preload" href={katexMainRegular} as="font" type="font/woff2" crossorigin />
+		<link rel="preload" href={katexMathItalic} as="font" type="font/woff2" crossorigin />
+		<link rel="preload" href={katexMainBold} as="font" type="font/woff2" crossorigin />
 		<style>
             .wiki-container {
+                box-sizing: border-box;
                 display: flex;
                 gap: 2rem;
                 width: 100%;
@@ -23,6 +65,140 @@ const { title, created, learnedFrom, connectsTo } = Astro.props;
                 flex: 3;
                 min-width: 0; /* Prevents long code blocks from breaking the layout */
             }
+            .history-link {
+                font-size: 0.85rem;
+                margin: 0 0 1rem 0;
+            }
+            /* Table of contents: a real member of the wiki-container grid
+               row (see the wide-screen media query below), so
+               `position: sticky` naturally follows the header away and
+               releases at the article's end. Folds into a compact list at
+               the top of the sidebar when there isn't room for the rail. */
+            .toc-rail {
+                display: none;
+                position: sticky;
+                top: 1.5rem;
+                font-size: 0.85rem;
+            }
+            .toc-rail > strong {
+                display: block;
+                margin-bottom: 0.75rem;
+                color: rgb(var(--gray));
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+            .toc-track {
+                position: relative;
+            }
+            .toc-line {
+                position: absolute;
+                right: 20px;
+                top: 0;
+                bottom: 0;
+                width: 2px;
+                background: #e2e8f0;
+            }
+            .toc-line::before,
+            .toc-line::after {
+                content: '';
+                position: absolute;
+                right: -3px;
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #cbd5e1;
+            }
+            .toc-line::before { top: -4px; }
+            .toc-line::after { bottom: -4px; }
+            .toc-progress-dot {
+                position: absolute;
+                top: 0;
+                right: 17px;
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--accent);
+                transition: top 0.08s linear, transform 0.1s;
+                touch-action: none;
+            }
+            /* Invisible larger hit area so the dot is easy to grab without
+               making it look oversized. */
+            .toc-progress-dot::before {
+                content: '';
+                position: absolute;
+                inset: -8px;
+                cursor: grab;
+            }
+            .toc-progress-dot:hover {
+                transform: scale(1.3);
+            }
+            .toc-progress-dot.dragging {
+                transition: transform 0.1s;
+                transform: scale(1.4);
+                cursor: grabbing;
+            }
+            .toc-progress-dot.dragging::before {
+                cursor: grabbing;
+            }
+            body.toc-dragging {
+                cursor: grabbing;
+                user-select: none;
+            }
+            .toc-item {
+                position: absolute;
+                right: 58px;
+                width: 172px;
+                text-align: right;
+                color: rgb(var(--gray));
+                text-decoration: none;
+                line-height: 1.25;
+                font-size: 0.85em;
+            }
+            .toc-item.toc-sub {
+                font-size: 0.8em;
+            }
+            .toc-item:hover {
+                color: var(--accent);
+            }
+            .toc-item.active {
+                font-weight: 700;
+                color: rgb(var(--black));
+            }
+            .toc-sidebar {
+                margin-bottom: 1.25rem;
+                padding-bottom: 1.25rem;
+                border-bottom: 1px solid #e4e4e7;
+                font-size: 0.9rem;
+            }
+            .toc-sidebar ul {
+                margin: 0.5rem 0 0 0;
+                padding-left: 1.2rem;
+            }
+            .toc-sidebar li.toc-sub {
+                list-style: circle;
+                margin-left: 1rem;
+                font-size: 0.9em;
+            }
+            .breadcrumbs {
+                font-size: 0.85rem;
+                color: rgb(var(--gray));
+                margin-bottom: 0.75rem;
+            }
+            .breadcrumbs a {
+                color: rgb(var(--gray));
+            }
+            .type-badge {
+                display: inline-block;
+                color: white;
+                padding: 0.15rem 0.6rem;
+                border-radius: 999px;
+                font-size: 0.75rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+                margin-bottom: 0.75rem;
+            }
             .infobox {
                 flex: 1;
                 background: #f4f4f5;
@@ -30,45 +206,404 @@ const { title, created, learnedFrom, connectsTo } = Astro.props;
                 border-radius: 8px;
                 padding: 1.5rem;
                 position: sticky;
-                top: 2rem;
+                top: 1.5rem;
             }
             .infobox h3 { margin-top: 0; font-size: 1.2rem; }
             .infobox ul { padding-left: 1.2rem; margin-bottom: 0; }
+            .infobox section + section {
+                margin-top: 1.25rem;
+                padding-top: 1.25rem;
+                border-top: 1px solid #e4e4e7;
+            }
+            .infobox dl {
+                margin: 0;
+                font-size: 0.9rem;
+            }
+            .infobox dt {
+                color: rgb(var(--gray));
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+                margin-top: 0.5rem;
+            }
+            .infobox dt:first-child { margin-top: 0; }
+            .infobox dd {
+                margin: 0;
+            }
             .tag {
                 display: inline-block;
                 background: #e2e8f0;
                 padding: 0.2rem 0.5rem;
                 border-radius: 4px;
                 font-size: 0.85rem;
-                margin: 0.2rem 0;
+                margin: 0.15rem 0.25rem 0.15rem 0;
+                text-decoration: none;
+                color: inherit;
+            }
+            a.tag:hover {
+                background: #cbd5e1;
+            }
+            .tag.ghost {
+                background: transparent;
+                border: 1px dashed #cbd5e1;
+                color: rgb(var(--gray));
+            }
+            .siblings a {
+                display: block;
+                padding: 0.25rem 0;
+                font-size: 0.9rem;
+            }
+            .siblings a.current {
+                font-weight: 700;
+                color: rgb(var(--black));
+                pointer-events: none;
+            }
+
+            .content :global(table) {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 1.5rem 0;
+                font-size: 0.95rem;
+                font-family: sans-serif;
+                box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+                border-radius: 8px;
+                overflow: hidden;
+            }
+
+            .content :global(thead tr) {
+                background-color: #0f172a; /* Matches your graph node color */
+                color: #ffffff;
+                text-align: left;
+                font-weight: bold;
+            }
+
+            .content :global(th),
+            .content :global(td) {
+                padding: 12px 15px;
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            .content :global(tbody tr:nth-of-type(even)) {
+                background-color: #f8fafc; /* Subtle zebra striping */
+            }
+
+            .content :global(tbody tr:last-of-type) {
+                border-bottom: 2px solid #0f172a;
+            }
+
+            .content :global(tbody tr:hover) {
+                background-color: #f1f5f9; /* Highlight row on hover */
+            }
+
+            /* Pseudocode blocks: ```pseudocode fenced code renders as an
+               "Algorithm" box instead of plain code. */
+            .content :global(pre[data-language="pseudocode"]) {
+                position: relative;
+                padding-top: 2.25em !important;
+            }
+            .content :global(pre[data-language="pseudocode"])::before {
+                content: "Algorithm";
+                position: absolute;
+                top: 0.6em;
+                left: 1.5em;
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                color: #94a3b8;
+            }
+
+            .content :global(.katex-display) {
+                overflow-x: auto;
+                overflow-y: visible;
+                padding: 0.2em 0;
+            }
+
+            /* This must stay last: it overrides base rules above (.content,
+               .infobox, .toc-rail) at equal specificity, so source order is
+               what makes it win once the viewport is wide enough. */
+            @media (min-width: 1800px) {
+                /* A real 3-column grid rather than a flex row with negative
+                   margins: the two 230px rails and the gaps around them are
+                   explicit tracks, so both sides are exactly symmetric by
+                   construction instead of by arithmetic. */
+                .wiki-container {
+                    display: grid;
+                    grid-template-columns: 230px minmax(0, 1fr) 230px;
+                    grid-template-areas: "toc content meta";
+                    /* Generous rather than exact: the article should reclaim
+                       the room the rails no longer take from it, not stay
+                       pinned at its old width. This only actually caps
+                       anything on very wide/ultrawide monitors. */
+                    max-width: 2200px;
+                    align-items: start;
+                }
+                .content { grid-area: content; }
+                .toc-rail { display: block; grid-area: toc; }
+                .toc-sidebar { display: none; }
+
+                /* Match the TOC rail's plain, unboxed look instead of the
+                   card style used when the metadata sits next to the
+                   article. */
+                .infobox {
+                    grid-area: meta;
+                    background: none;
+                    border: none;
+                    padding: 0;
+                    font-size: 0.85rem;
+                }
+                /* "Entry Metadata" (h3) and the section labels (Tags,
+                   Connects To, Backlinks, In this section — all <strong>)
+                   should read as one consistent label style, matching
+                   CREATED/SOURCE (.infobox dt, styled elsewhere) and the
+                   TOC's own "Contents" label. */
+                .infobox h3,
+                .infobox strong {
+                    font-size: 0.7rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    color: rgb(var(--gray));
+                    font-weight: 700;
+                }
+                /* Individual tags/backlinks keep their normal chip look
+                   (.tag, defined above) — only the surrounding card and
+                   labels get the TOC's plain treatment. */
             }
         </style>
 	</head>
 	<body>
 		<Header />
 		<main class="wiki-container">
-			<article class="content">
+			<article class="content" data-pagefind-body>
+				{breadcrumbs.length > 0 && (
+					<nav class="breadcrumbs">
+						<a href="/wiki">wiki</a>
+						{breadcrumbs.map((folder) => (
+							<>
+								{' / '}
+								<a href={`/wiki/section/${folder}`}>{folderLabel(folder)}</a>
+							</>
+						))}
+					</nav>
+				)}
+				<span class="type-badge" style={`background-color: ${meta.color}`}>{meta.label}</span>
 				<h1>{title}</h1>
+				{historyUrl && (
+					<p class="history-link">
+						<a href={historyUrl} target="_blank" rel="noopener">View history on GitHub</a>
+					</p>
+				)}
 				<hr />
 				<slot /> </article>
 
 			<aside class="infobox">
-				<h3>Entry Metadata</h3>
-				<p><strong>Created:</strong> {new Date(created).toLocaleDateString()}</p>
-				{learnedFrom && <p><strong>Source:</strong> {learnedFrom}</p>}
-
-				{connectsTo.length > 0 && (
-					<div>
-						<strong>Connects To:</strong>
+				{tocHeadings.length >= 3 && (
+					<section class="toc-sidebar">
+						<strong>Contents</strong>
 						<ul>
-							{connectsTo.map((link: string) => (
-								<li><span class="tag">{link}</span></li>
+							{tocHeadings.map((h: { depth: number; slug: string; text: string }) => (
+								<li class={h.depth === 3 ? 'toc-sub' : ''}>
+									<a href={`#${h.slug}`}>{h.text}</a>
+								</li>
 							))}
 						</ul>
-					</div>
+					</section>
+				)}
+				<h3>Entry Metadata</h3>
+				<dl>
+					<dt>Created</dt>
+					<dd>{new Date(created).toLocaleDateString()}</dd>
+					{updated && <><dt>Updated</dt><dd>{new Date(updated).toLocaleDateString()}</dd></>}
+					{learnedFrom && <><dt>Source</dt><dd>{learnedFrom}</dd></>}
+					{institution && <><dt>Institution</dt><dd>{institution}</dd></>}
+					{semester && <><dt>Semester</dt><dd>{semester}</dd></>}
+					{ects != null && <><dt>ECTS</dt><dd>{ects}</dd></>}
+				</dl>
+
+				{tags && tags.length > 0 && (
+					<section>
+						<strong>Tags</strong>
+						<div>
+							{tags.map((tag: string) => (
+								<a class="tag" href={`/wiki/tags/${tag}`}>{tag}</a>
+							))}
+						</div>
+					</section>
+				)}
+
+				{connectsTo && connectsTo.length > 0 && (
+					<section>
+						<strong>Connects To</strong>
+						<div>
+							{connectsTo.map((link: string) => {
+								const url = titleToUrl.get(link);
+								return url ? (
+									<a class="tag" href={url}>{link}</a>
+								) : (
+									<span class="tag ghost" title="Not written up yet">{link}</span>
+								);
+							})}
+						</div>
+					</section>
+				)}
+
+				{backlinks.length > 0 && (
+					<section>
+						<strong>Backlinks</strong>
+						<div>
+							{backlinks.map((p) => (
+								<a class="tag" href={`/wiki/${p.id}`}>{p.data.title}</a>
+							))}
+						</div>
+					</section>
+				)}
+
+				{siblings.length > 0 && (
+					<section class="siblings">
+						<strong>In this section</strong>
+						<a class="current">{title}</a>
+						{siblings.map((s) => (
+							<a href={`/wiki/${s.id}`}>{s.data.title}</a>
+						))}
+					</section>
 				)}
 			</aside>
+
+			{tocHeadings.length >= 3 && (
+				<nav class="toc-rail" aria-label="Table of contents">
+					<strong>Contents</strong>
+					<div class="toc-track" id="toc-track">
+						<div class="toc-line"></div>
+						<div class="toc-progress-dot" id="toc-progress"></div>
+						{tocHeadings.map((h: { depth: number; slug: string; text: string }) => (
+							<a
+								href={`#${h.slug}`}
+								data-slug={h.slug}
+								class={`toc-item ${h.depth === 3 ? 'toc-sub' : ''}`}
+							>
+								{h.text}
+							</a>
+						))}
+					</div>
+				</nav>
+			)}
 		</main>
 		<Footer />
+		<script>
+			// Lays the TOC rail out as a proportional map of the article: each
+			// section's label sits at the same fraction of the line as its
+			// content occupies in the page, so the scroll-linked dot lines up
+			// with whichever label is currently being read.
+			function initTocRail() {
+				const track = document.getElementById('toc-track');
+				const progress = document.getElementById('toc-progress');
+				if (!track || !progress) return;
+
+				const items = Array.from(track.querySelectorAll('a.toc-item'));
+				const headings = items
+					.map((a) => document.getElementById(a.dataset.slug ?? ''))
+					.filter((el) => el !== null);
+				if (headings.length === 0) return;
+
+				const article = document.querySelector('.content');
+				if (!article) return;
+
+				let firstTop = 0;
+				let totalHeight = 1;
+				let trackHeight = 0;
+
+				function layout() {
+					trackHeight = Math.min(window.innerHeight * 0.6, 520);
+					track.style.height = `${trackHeight}px`;
+
+					firstTop = headings[0].getBoundingClientRect().top + window.scrollY;
+					const articleBottom = article.getBoundingClientRect().bottom + window.scrollY;
+					totalHeight = Math.max(articleBottom - firstTop, 1);
+
+					headings.forEach((h, i) => {
+						const offset = h.getBoundingClientRect().top + window.scrollY - firstTop;
+						const fraction = Math.min(Math.max(offset / totalHeight, 0), 1);
+						items[i].style.top = `${fraction * trackHeight}px`;
+					});
+				}
+
+				function onScroll() {
+					const fraction = Math.min(Math.max((window.scrollY - firstTop) / totalHeight, 0), 1);
+					progress.style.top = `${fraction * trackHeight}px`;
+
+					// The "current" section is the last one whose heading has
+					// scrolled past a point a little below the viewport top.
+					const buffer = 120;
+					let currentIndex = 0;
+					for (let i = 0; i < headings.length; i++) {
+						const top = headings[i].getBoundingClientRect().top + window.scrollY;
+						if (top - buffer <= window.scrollY) currentIndex = i;
+					}
+					items.forEach((a, i) => a.classList.toggle('active', i === currentIndex));
+				}
+
+				// Dragging the progress dot scrubs through the page: its
+				// position on the line maps directly to a scroll position.
+				let dragging = false;
+
+				function fractionFromClientY(clientY) {
+					const rect = track.getBoundingClientRect();
+					return Math.min(Math.max((clientY - rect.top) / trackHeight, 0), 1);
+				}
+
+				function applyFraction(fraction) {
+					progress.style.top = `${fraction * trackHeight}px`;
+					window.scrollTo(0, firstTop + fraction * totalHeight);
+				}
+
+				function startDrag(e) {
+					dragging = true;
+					progress.classList.add('dragging');
+					document.body.classList.add('toc-dragging');
+					progress.setPointerCapture(e.pointerId);
+					applyFraction(fractionFromClientY(e.clientY));
+					e.preventDefault();
+				}
+
+				function dragMove(e) {
+					if (!dragging) return;
+					applyFraction(fractionFromClientY(e.clientY));
+				}
+
+				function endDrag(e) {
+					if (!dragging) return;
+					dragging = false;
+					progress.classList.remove('dragging');
+					document.body.classList.remove('toc-dragging');
+					try {
+						progress.releasePointerCapture(e.pointerId);
+					} catch {
+						// already released, e.g. via pointercancel
+					}
+				}
+
+				progress.addEventListener('pointerdown', startDrag);
+				progress.addEventListener('pointermove', dragMove);
+				progress.addEventListener('pointerup', endDrag);
+				progress.addEventListener('pointercancel', endDrag);
+
+				layout();
+				onScroll();
+				window.addEventListener('scroll', onScroll, { passive: true });
+				window.addEventListener('resize', () => {
+					layout();
+					onScroll();
+				});
+				window.addEventListener('load', () => {
+					layout();
+					onScroll();
+				});
+			}
+
+			if (document.readyState === 'loading') {
+				document.addEventListener('DOMContentLoaded', initTocRail);
+			} else {
+				initTocRail();
+			}
+		</script>
 	</body>
 </html>

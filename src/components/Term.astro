@@ -1,0 +1,62 @@
+---
+// Inline glossary reference: renders the term with a hover tooltip and a
+// link to its full glossary entry. Usage inside a .mdx note:
+//   import Term from '../../../components/Term.astro';
+//   The <Term id="ecs" /> pattern lets each system own its data.
+import { getEntry } from 'astro:content';
+
+interface Props {
+	id: string;
+	label?: string;
+}
+
+const { id, label } = Astro.props;
+const entry = await getEntry('glossary', id);
+---
+
+{entry ? (
+	<a class="term" href={`/glossary/${entry.id}`}>
+		{label ?? entry.data.term}
+		<span class="term-tooltip">{entry.data.definition}</span>
+	</a>
+) : (
+	<span class="term term-missing" title={`No glossary entry for "${id}" yet`}>
+		{label ?? id}
+	</span>
+)}
+
+<style>
+	.term {
+		position: relative;
+		text-decoration: underline dotted rgb(var(--gray));
+		text-underline-offset: 3px;
+		cursor: help;
+	}
+	.term-missing {
+		text-decoration: underline dotted #dc2626;
+		color: inherit;
+		cursor: help;
+	}
+	.term-tooltip {
+		display: none;
+		position: absolute;
+		left: 50%;
+		bottom: 100%;
+		transform: translateX(-50%);
+		margin-bottom: 8px;
+		width: max-content;
+		max-width: 280px;
+		background: rgb(var(--black));
+		color: white;
+		font-size: 0.8rem;
+		line-height: 1.4;
+		padding: 0.5em 0.75em;
+		border-radius: 6px;
+		text-decoration: none;
+		z-index: 10;
+	}
+	.term:hover .term-tooltip,
+	.term:focus .term-tooltip {
+		display: block;
+	}
+</style>

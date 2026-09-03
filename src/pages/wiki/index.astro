@@ -4,12 +4,16 @@ import BaseHead from '../../components/BaseHead.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import { getCollection } from 'astro:content';
+import { typeMeta } from '../../utils/wiki';
 
 // 1. Fetch all wiki entries
 const wikiEntries = await getCollection('wiki');
 
 // 2. Sort them by creation date (newest first)
 wikiEntries.sort((a, b) => b.data.created.valueOf() - a.data.created.valueOf());
+
+// Top-level folders, for a quick "browse by section" jump list.
+const topSections = [...new Set(wikiEntries.filter((e) => e.id.includes('/')).map((e) => e.id.split('/')[0]))];
 ---
 
 <!doctype html>
@@ -56,17 +60,31 @@ wikiEntries.sort((a, b) => b.data.created.valueOf() - a.data.created.valueOf());
 			<h1>Wiki Directory 📚</h1>
 			<p>An automatically generated list of everything in my knowledge base.</p>
 
+			<p>
+				<a href="/wiki/tags">Browse by tag</a> · <a href="/graph">Browse the graph</a>
+				{topSections.length > 0 && <> · Sections: {topSections.map((s, i) => <>{i > 0 && ', '}<a href={`/wiki/section/${s}`}>{s}</a></>)}</>}
+			</p>
+
 			<ul class="wiki-list">
-				{wikiEntries.map(entry => (
-					<li class="wiki-item">
-						<a href={`/wiki/${entry.id}`}>{entry.data.title}</a>
-						<div class="meta">
-							<span>📅 {new Date(entry.data.created).toLocaleDateString()}</span>
-							{/* This shows the folder path! e.g., school/5th-semester */}
-							<span class="folder-badge">📁 {entry.id.split('/').slice(0, -1).join('/') || 'root'}</span>
-						</div>
-					</li>
-				))}
+				{wikiEntries.map(entry => {
+					const meta = typeMeta(entry.data.type);
+					return (
+						<li class="wiki-item">
+							<span
+								style={`display:inline-block; background:${meta.color}; color:white; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; padding:0.1rem 0.5rem; border-radius:999px; margin-right:0.5rem;`}
+							>
+								{meta.label}
+							</span>
+							<a href={`/wiki/${entry.id}`}>{entry.data.title}</a>
+							<div class="meta">
+								<span>📅 {new Date(entry.data.created).toLocaleDateString()}</span>
+								{/* This shows the folder path! e.g., school/5th-semester */}
+								<span class="folder-badge">📁 {entry.id.split('/').slice(0, -1).join('/') || 'root'}</span>
+								{entry.data.tags.length > 0 && <span>{entry.data.tags.map((t: string) => `#${t}`).join(' ')}</span>}
+							</div>
+						</li>
+					);
+				})}
 			</ul>
 		</main>
 		<Footer />

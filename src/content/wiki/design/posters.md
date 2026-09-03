@@ -2,6 +2,8 @@
 title: "Posters"
 created: 2026-02-27
 learnedFrom: "Pinterest"
+type: project
+tags: ["design", "art"]
 connectsTo: ["Art", "Graphics"]
 ---
 I kind of like making posters. Made a few, here you can take a look.

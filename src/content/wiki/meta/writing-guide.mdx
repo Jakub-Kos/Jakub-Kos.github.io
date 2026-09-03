@@ -1,0 +1,128 @@
+---
+title: "Writing Guide: Math, Pseudocode, Terms & Schematics"
+created: 2026-09-03
+learnedFrom: "myself"
+type: reference
+tags: ["meta"]
+connectsTo: []
+---
+import Term from '../../../components/Term.astro';
+import Schematic from '../../../components/Schematic.astro';
+
+A living cheatsheet for how to write a wiki entry. This page itself is a
+normal entry (`type: reference`, tag `meta`) so you can always find it again
+from `/wiki/tags/meta`.
+
+## Front matter
+
+```
+title: "..."
+created: 2026-09-03
+learnedFrom: "who or what taught me this"
+type: subject | chapter | talk | video | project | thesis | reference | log | note
+tags: ["topic-a", "topic-b"]
+connectsTo: ["Some Other Page Title", "A concept without a page yet"]
+# optional, mostly for `type: subject`
+institution: "ITU Copenhagen"
+semester: "Autumn 2026"
+ects: 7.5
+```
+
+`connectsTo` builds the graph on `/graph`: a title that matches another
+entry becomes a real edge, anything else becomes a dashed "ghost" node —
+a concept you know you'll want to write up later.
+
+## Math
+
+Inline math like $E = mc^2$ works anywhere. Display math too:
+
+$$
+\nabla \cdot \mathbf{E} = \frac{\rho}{\varepsilon_0}
+$$
+
+## Pseudocode
+
+A fenced block tagged `pseudocode` renders as an algorithm box instead of a
+plain code block (it's highlighted with Python's grammar under the hood,
+since that's the closest keyword set to typical algorithm notation — for
+real code, just tag it with its real language and get proper highlighting):
+
+```pseudocode
+function Dijkstra(graph, source):
+    dist[source] := 0
+    for each vertex v in graph:
+        if v != source: dist[v] := infinity
+        add v to Q
+    while Q is not empty:
+        u := vertex in Q with min dist[u]
+        remove u from Q
+        for each neighbor v of u still in Q:
+            alt := dist[u] + length(u, v)
+            if alt < dist[v]:
+                dist[v] := alt
+    return dist
+```
+
+## Real code
+
+For an actual snippet in a real language, tag the fence with that language
+and Shiki highlights it exactly as an IDE would — no aliasing tricks needed:
+
+```python
+def dijkstra(graph, source):
+    dist = {v: float("inf") for v in graph}
+    dist[source] = 0
+    queue = set(graph)
+
+    while queue:
+        u = min(queue, key=lambda v: dist[v])
+        queue.remove(u)
+        for v, weight in graph[u].items():
+            alt = dist[u] + weight
+            if alt < dist[v]:
+                dist[v] = alt
+
+    return dist
+```
+
+## Glossary terms
+
+Only `.mdx` files can use components. Import `Term` and reference a
+glossary entry by its id (the filename under `src/content/glossary/`):
+hover or tap <Term id="ecs" /> to see it in action. If the id doesn't
+exist yet it renders with a red dashed underline instead, as a reminder to
+write the glossary entry.
+
+## Clickable schematics
+
+Wrap any image or inline SVG in `Schematic` and give it percentage-based
+hotspots:
+
+<Schematic
+  caption="A minimal ECS overview"
+  hotspots={[
+    { x: 20, y: 50, label: 'Entity', note: 'Just an id. No data, no logic.' },
+    { x: 50, y: 50, label: 'Component', note: 'Plain data, e.g. Position.' },
+    { x: 80, y: 50, label: 'System', note: 'Logic over matching entities.', href: '/glossary/ecs' },
+  ]}
+>
+  <svg viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="300" height="100" fill="#f8fafc" />
+    <circle cx="60" cy="50" r="24" fill="#2563eb" />
+    <circle cx="150" cy="50" r="24" fill="#16a34a" />
+    <circle cx="240" cy="50" r="24" fill="#9333ea" />
+  </svg>
+</Schematic>
+
+## Organizing the tree vs. the graph
+
+- **Folders are the tree.** File a chapter under
+  `university/erasmus/<university>/<subject>/<chapter>.md` and it
+  automatically shows up as a "Section" breadcrumb, in its subject's
+  sibling list, and at `/wiki/section/university/erasmus`.
+- **`connectsTo` is the graph.** Use it to link a concept across subjects —
+  e.g. an ECS chapter from a game engine course can connect to an ECS
+  chapter from a graphics course even though they live in different
+  folders.
+- **Tags are cross-cutting labels**, not structure — good for "everything
+  about GPUs" regardless of which course or talk it came from.

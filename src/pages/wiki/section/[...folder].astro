@@ -1,0 +1,133 @@
+---
+// A "focus" view: everything filed under one folder of the tree, e.g.
+// /wiki/section/university/erasmus shows the whole Erasmus experience,
+// while /wiki/section/university/erasmus/itu-copenhagen/algorithms narrows
+// down to just that one subject. Generated automatically from folder paths,
+// no manual hub page needed.
+import BaseHead from '../../../components/BaseHead.astro';
+import Header from '../../../components/Header.astro';
+import Footer from '../../../components/Footer.astro';
+import GraphVisualizer from '../../../components/GraphVisualizer.tsx';
+import { getCollection } from 'astro:content';
+import { getAncestorFolders, folderLabel, typeMeta } from '../../../utils/wiki';
+
+export async function getStaticPaths() {
+	const entries = await getCollection('wiki');
+	const folders = new Set<string>();
+	for (const entry of entries) {
+		for (const folder of getAncestorFolders(entry.id)) {
+			folders.add(folder);
+		}
+	}
+	return [...folders].map((folder) => ({
+		params: { folder },
+	}));
+}
+
+const { folder } = Astro.params;
+const allPages = await getCollection('wiki');
+const prefix = `${folder}/`;
+const pages = allPages
+	.filter((p) => p.id.startsWith(prefix))
+	.sort((a, b) => a.id.localeCompare(b.id));
+
+// Sub-folders one level below this section, for quick drill-down.
+const subFolders = [
+	...new Set(
+		pages
+			.map((p) => {
+				const rest = p.id.slice(prefix.length).split('/');
+				return rest.length > 1 ? `${folder}/${rest[0]}` : null;
+			})
+			.filter((f): f is string => f !== null),
+	),
+];
+
+// Direct children only (pages not nested in a sub-folder) for the listing.
+const directPages = pages.filter((p) => p.id.slice(prefix.length).split('/').length === 1);
+
+// Sub-graph: real nodes are pages within this section; edges to titles
+// outside the section (or without a page yet) become ghost nodes.
+const titlesInSection = new Set(pages.map((p) => p.data.title));
+const nodes = pages.map((p) => ({
+	id: p.data.title,
+	group: 'real-page',
+	type: p.data.type,
+	url: `/wiki/${p.id}`,
+}));
+const seen = new Set(nodes.map((n) => n.id));
+const links: { source: string; target: string }[] = [];
+for (const p of pages) {
+	for (const target of p.data.connectsTo) {
+		if (!seen.has(target)) {
+			nodes.push({ id: target, group: 'ghost-page', type: 'note', url: undefined });
+			seen.add(target);
+		}
+		links.push({ source: p.data.title, target });
+	}
+}
+const graphData = { nodes, links };
+
+const breadcrumbs = getAncestorFolders(`${folder}/_`);
+const title = folderLabel(folder);
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={`Focused view of everything under ${folder}`} />
+	</head>
+	<body>
+		<Header />
+		<main style="max-width: 1000px; margin: 0 auto; padding: 2rem 1rem;">
+			<nav style="font-size: 0.85rem; color: #64748b; margin-bottom: 0.75rem;">
+				<a href="/wiki">wiki</a>
+				{breadcrumbs.slice(0, -1).map((b) => (
+					<>
+						{' / '}
+						<a href={`/wiki/section/${b}`}>{folderLabel(b)}</a>
+					</>
+				))}
+			</nav>
+			<h1>{title}</h1>
+			<p style="color: #64748b;">{pages.length} {pages.length === 1 ? 'entry' : 'entries'} in this section.</p>
+
+			{subFolders.length > 0 && (
+				<>
+					<h2>Sub-sections</h2>
+					<ul>
+						{subFolders.map((f) => (
+							<li><a href={`/wiki/section/${f}`}>{folderLabel(f)}</a></li>
+						))}
+					</ul>
+				</>
+			)}
+
+			{directPages.length > 0 && (
+				<>
+					<h2>Pages</h2>
+					<ul style="list-style: none; padding: 0;">
+						{directPages.map((entry) => {
+							const meta = typeMeta(entry.data.type);
+							return (
+								<li style="margin-bottom: 0.75rem;">
+									<span
+										style={`display:inline-block; background:${meta.color}; color:white; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; padding:0.1rem 0.5rem; border-radius:999px; margin-right:0.5rem;`}
+									>
+										{meta.label}
+									</span>
+									<a href={`/wiki/${entry.id}`} style="font-weight: bold; text-decoration: none; color: #0f172a;">
+										{entry.data.title}
+									</a>
+								</li>
+							);
+						})}
+					</ul>
+				</>
+			)}
+
+			<h2>Section graph</h2>
+			<GraphVisualizer client:only="solid-js" data={graphData} />
+		</main>
+		<Footer />
+	</body>
+</html>

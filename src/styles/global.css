@@ -4,6 +4,9 @@
   License MIT: https://github.com/HermanMartinus/bearblog/blob/master/LICENSE.md
  */
 
+/* Loaded globally (not just in the wiki) so math works anywhere BaseHead is used. */
+@import 'katex/dist/katex.min.css';
+
 :root {
 	--accent: #2337ff;
 	--accent-dark: #000d8a;
@@ -106,16 +109,22 @@ img {
 	border-radius: 8px;
 }
 code {
+	font-family: "Cascadia Code", "Fira Code", "JetBrains Mono", ui-monospace, Menlo, Consolas, "DejaVu Sans Mono", monospace;
+	font-size: 0.9em;
 	padding: 2px 5px;
 	background-color: rgb(var(--gray-light));
 	border-radius: 2px;
+	box-decoration-break: clone;
+	-webkit-box-decoration-break: clone;
 }
 pre {
 	padding: 1.5em;
 	border-radius: 8px;
+	font-family: "Cascadia Code", "Fira Code", "JetBrains Mono", ui-monospace, Menlo, Consolas, "DejaVu Sans Mono", monospace;
 }
 pre > code {
 	all: unset;
+	font-family: inherit;
 }
 blockquote {
 	border-left: 4px solid var(--accent);

@@ -2,6 +2,8 @@
 title: "Quiz Night Web App"
 created: 2026-02-27
 learnedFrom: "Gemini"
+type: project
+tags: ["webdev", "react"]
 connectsTo: ["WebApp", "React", "Quiz Night", "MFF UK"]
 ---
 Hey, I made a second version of an webapp I use to present Quiz Nights that we host under [Spolek Matfyzák](https://matfyzak.cz/wp/o-spolku/) at [MFF UK](https://www.mff.cuni.cz/).

@@ -1,0 +1,52 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { getCollection, getEntry, render } from 'astro:content';
+
+export async function getStaticPaths() {
+	const entries = await getCollection('glossary');
+	return entries.map((entry) => ({
+		params: { slug: entry.id },
+		props: { entry },
+	}));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+
+const wikiEntries = await getCollection('wiki');
+const related = entry.data.tags.length
+	? wikiEntries.filter((w) => w.data.tags.some((t) => entry.data.tags.includes(t)))
+	: [];
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={entry.data.term} description={entry.data.definition} />
+	</head>
+	<body>
+		<Header />
+		<main style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;" data-pagefind-body>
+			<p><a href="/glossary">&larr; glossary</a></p>
+			<h1>{entry.data.term}</h1>
+			{entry.data.aliases.length > 0 && (
+				<p style="color: #64748b;">Also known as: {entry.data.aliases.join(', ')}</p>
+			)}
+			<p style="font-size: 1.1rem;">{entry.data.definition}</p>
+			<Content />
+
+			{related.length > 0 && (
+				<>
+					<h2>Related wiki entries</h2>
+					<ul>
+						{related.map((w) => (
+							<li><a href={`/wiki/${w.id}`}>{w.data.title}</a></li>
+						))}
+					</ul>
+				</>
+			)}
+		</main>
+		<Footer />
+	</body>
+</html>

@@ -1,0 +1,34 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { getCollection } from 'astro:content';
+
+const terms = await getCollection('glossary');
+terms.sort((a, b) => a.data.term.localeCompare(b.data.term));
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title="Glossary" description="Terms and definitions referenced across the wiki." />
+	</head>
+	<body>
+		<Header />
+		<main style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;">
+			<h1>Glossary</h1>
+			<p>Definitions I can link to and hover over from anywhere in the wiki, instead of re-explaining things every time.</p>
+			<dl>
+				{terms.map((entry) => (
+					<div style="margin-bottom: 1.25rem;">
+						<dt style="font-weight: bold; font-size: 1.1rem;">
+							<a href={`/glossary/${entry.id}`} style="color: #0f172a; text-decoration: none;">{entry.data.term}</a>
+						</dt>
+						<dd style="margin: 0.2rem 0 0 0;">{entry.data.definition}</dd>
+					</div>
+				))}
+			</dl>
+			{terms.length === 0 && <p>No terms yet.</p>}
+		</main>
+		<Footer />
+	</body>
+</html>

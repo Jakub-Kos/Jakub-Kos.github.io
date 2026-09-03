@@ -1,0 +1,42 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title="Search" description="Search the wiki, blog, and glossary." />
+		<link rel="stylesheet" href="/pagefind/pagefind-ui.css" />
+	</head>
+	<body>
+		<Header />
+		<main style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;">
+			<h1>Search</h1>
+			<div id="search"></div>
+			<p id="search-fallback" hidden style="color: #64748b;">
+				Search isn't available in dev mode — it's built by <code>npm run build</code>
+				(a <code>postbuild</code> step indexes the site with
+				<a href="https://pagefind.app/">Pagefind</a>). Try it against a production build
+				or the deployed site.
+			</p>
+		</main>
+		<Footer />
+		<script>
+			// Pagefind's UI bundle is generated into /pagefind at build time (see the
+			// "postbuild" script) — it doesn't exist during `astro dev`, and it isn't a
+			// real source module, so load it as a plain script tag rather than an
+			// import (an import here is a literal path Rollup would try to bundle).
+			const script = document.createElement('script');
+			script.src = '/pagefind/pagefind-ui.js';
+			script.onload = () => {
+				// @ts-ignore - PagefindUI is attached to window by the script above
+				new PagefindUI({ element: '#search', showSubResults: true });
+			};
+			script.onerror = () => {
+				document.getElementById('search-fallback')?.removeAttribute('hidden');
+			};
+			document.body.appendChild(script);
+		</script>
+	</body>
+</html>

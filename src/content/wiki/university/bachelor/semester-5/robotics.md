@@ -2,6 +2,8 @@
 title: "Inverse Kinematics"
 created: 2026-02-27
 learnedFrom: "Robotics 301"
+type: chapter
+tags: ["robotics", "university", "math"]
 connectsTo: ["Linear Algebra", "Forward Kinematics"]
 ---
 
