@@ -63,4 +63,39 @@ const glossary = defineCollection({
 	}),
 });
 
-export const collections = { blog, wiki, glossary };
+const recipes = defineCollection({
+	loader: glob({ base: './src/content/recipes', pattern: '**/*.{md,mdx}' }),
+	schema: ({ image }) =>
+		z.object({
+			title: z.string(),
+			description: z.string(),
+			tags: z.array(z.string()).default([]),
+			// A link to where the recipe originally came from, if anywhere.
+			source: z.string().url().optional(),
+			// Minutes.
+			prepTime: z.number().optional(),
+			cookTime: z.number().optional(),
+			servings: z.number().optional(),
+			ingredients: z
+				.array(
+					z.object({
+						name: z.string(),
+						amount: z.union([z.number(), z.string()]).optional(),
+						unit: z.string().optional(),
+					})
+				)
+				.default([]),
+			rating: z.number().min(1).max(5).optional(),
+			// Personal tweaks/observations, separate from the recipe body
+			// (which holds the steps as written).
+			notes: z.string().optional(),
+			heroImage: image().optional(),
+			created: z.coerce.date(),
+			updated: z.coerce.date().optional(),
+			// Lets a recipe be committed mid-transcription without showing up
+			// anywhere (index, tags, RSS) or even building a page for it yet.
+			draft: z.boolean().default(false),
+		}),
+});
+
+export const collections = { blog, wiki, glossary, recipes };

@@ -1,0 +1,48 @@
+---
+import BaseHead from '../../../components/BaseHead.astro';
+import Header from '../../../components/Header.astro';
+import Footer from '../../../components/Footer.astro';
+import { getCollection } from 'astro:content';
+
+const recipeEntries = await getCollection('recipes', ({ data }) => !data.draft);
+
+const counts = new Map<string, number>();
+for (const entry of recipeEntries) {
+	for (const tag of entry.data.tags) {
+		counts.set(tag, (counts.get(tag) ?? 0) + 1);
+	}
+}
+const tags = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title="Recipe Tags" description="Every tag used across the recipe collection." />
+		<style>
+			body.recipe-body {
+				background: var(--recipe-bg);
+			}
+		</style>
+	</head>
+	<body class="recipe-theme recipe-body">
+		<Header />
+		<main style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;">
+			<p><a href="/recipes" style="color: var(--recipe-primary);">&larr; all recipes</a></p>
+			<h1 style="font-family: var(--recipe-title-font); font-weight: 400;">Recipe Tags</h1>
+			<ul style="list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.75rem;">
+				{tags.map(([tag, count]) => (
+					<li>
+						<a
+							href={`/recipes/tags/${tag}`}
+							style="display: inline-block; background: var(--recipe-cream); padding: 0.4rem 0.8rem; border-radius: 999px; text-decoration: none; color: var(--recipe-ink);"
+						>
+							{tag} <span style="color: var(--recipe-soft-ink);">({count})</span>
+						</a>
+					</li>
+				))}
+			</ul>
+			{tags.length === 0 && <p>No tags yet.</p>}
+		</main>
+		<Footer />
+	</body>
+</html>

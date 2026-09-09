@@ -1,0 +1,689 @@
+---
+// src/layouts/RecipeLayout.astro
+// Visual language borrowed from cooked.wiki: a compact square thumbnail
+// next to the title (not a full-width hero), a checklist-style ingredient
+// card, and numbered steps in a circle badge. Palette/fonts come from the
+// `.recipe-theme` class defined in global.css.
+import { Image } from 'astro:assets';
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { formatMinutes, ingredientParts } from '../utils/recipes';
+
+const {
+	title,
+	description,
+	tags,
+	source,
+	prepTime,
+	cookTime,
+	servings,
+	ingredients,
+	rating,
+	notes,
+	heroImage,
+	created,
+	updated,
+} = Astro.props;
+
+const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cookTime ?? 0) : undefined;
+---
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={description} />
+		<style>
+			body.recipe-body {
+				background: var(--recipe-bg);
+			}
+			.recipe-container {
+				box-sizing: border-box;
+				width: 100%;
+				max-width: 1000px;
+				margin: 0 auto;
+				padding: 2em 1em 4em;
+			}
+			/* Two columns, like cooked.wiki's recipe-content: a narrower
+			   ingredients card on the left, steps taking the rest of the
+			   width. Wraps to a single stacked column on narrow screens. */
+			.recipe-columns {
+				display: flex;
+				gap: 2rem;
+				align-items: flex-start;
+				flex-wrap: wrap;
+				margin-top: 1.75rem;
+			}
+			.ingredients-col {
+				flex: 1 1 260px;
+				max-width: 320px;
+				background: var(--recipe-cream);
+				border-radius: var(--recipe-radius);
+				padding: 1.25rem;
+				position: sticky;
+				top: 1.5rem;
+			}
+			.main-col {
+				flex: 3 1 400px;
+				min-width: 0;
+			}
+			.recipe-columns h2:first-child {
+				margin-top: 0;
+			}
+			.recipe-header {
+				display: flex;
+				gap: 1.25rem;
+				align-items: flex-start;
+			}
+			.thumb {
+				flex-shrink: 0;
+				width: 96px;
+				height: 96px;
+				border-radius: var(--recipe-radius);
+				overflow: hidden;
+				box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+			}
+			.thumb img {
+				width: 100%;
+				height: 100%;
+				object-fit: cover;
+				display: block;
+			}
+			.title-block {
+				min-width: 0;
+			}
+			.title-row {
+				display: flex;
+				align-items: baseline;
+				gap: 0.5rem;
+				flex-wrap: wrap;
+			}
+			h1 {
+				font-family: var(--recipe-title-font);
+				font-weight: 400;
+				font-size: 2rem;
+				margin: 0;
+				color: var(--recipe-ink);
+			}
+			.source-link {
+				color: var(--recipe-soft-ink);
+				text-decoration: none;
+				font-size: 0.9rem;
+				white-space: nowrap;
+			}
+			.source-link:hover {
+				color: var(--recipe-primary);
+			}
+			.description {
+				color: var(--recipe-soft-ink);
+				margin: 0.4rem 0 0;
+			}
+			.rating {
+				color: var(--recipe-primary);
+				letter-spacing: 0.1em;
+				margin: 0.4rem 0 0;
+			}
+			.meta-bar {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 1.5rem;
+				margin: 1.75rem 0;
+				padding: 1rem 1.25rem;
+				background: var(--recipe-cream);
+				border-radius: var(--recipe-radius);
+				font-size: 0.9rem;
+				color: var(--recipe-ink);
+			}
+			.meta-bar > div {
+				display: flex;
+				flex-direction: column;
+			}
+			.meta-bar dt {
+				font-size: 0.72rem;
+				text-transform: uppercase;
+				letter-spacing: 0.04em;
+				color: var(--recipe-soft-ink);
+			}
+			.meta-bar dd {
+				margin: 0.15rem 0 0;
+				font-weight: 700;
+			}
+			h2 {
+				font-family: var(--recipe-title-font);
+				font-weight: 400;
+				font-size: 1.4rem;
+				color: var(--recipe-ink);
+				margin: 2rem 0 0.75rem;
+			}
+			.ingredient-list {
+				list-style: none;
+				padding: 0;
+				margin: 0;
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+			}
+			.ingredient-list label {
+				display: flex;
+				align-items: baseline;
+				gap: 0.65rem;
+				padding: 0.4rem 0;
+				cursor: pointer;
+				font-size: 0.95rem;
+			}
+			/* Custom circular checkbox, matching cooked.wiki's own style. */
+			.ingredient-list input {
+				appearance: none;
+				width: 1rem;
+				height: 1rem;
+				border-radius: 50%;
+				border: 2px solid var(--recipe-soft-ink);
+				background: var(--recipe-soft-ink);
+				opacity: 0.33;
+				flex-shrink: 0;
+				margin-top: 0.2rem;
+				cursor: pointer;
+				position: relative;
+				transition: opacity 0.15s ease-in-out;
+			}
+			.ingredient-list input:hover {
+				opacity: 1;
+			}
+			.ingredient-list input:checked {
+				opacity: 1;
+				border-color: var(--recipe-primary);
+				background: var(--recipe-primary);
+			}
+			.ingredient-list input:checked::after {
+				content: '';
+				position: absolute;
+				left: 3px;
+				top: 0px;
+				width: 3px;
+				height: 6px;
+				border: solid white;
+				border-width: 0 2px 2px 0;
+				transform: rotate(45deg);
+			}
+			.ingredient-list li:has(input:checked) span {
+				text-decoration: line-through;
+				opacity: 0.5;
+			}
+			.ingredient-list li + li {
+				border-top: 1px solid rgba(41, 37, 33, 0.08);
+			}
+			.ingredient-list .quantity {
+				font-weight: 700;
+			}
+			.steps :global(ol) {
+				counter-reset: step;
+				list-style: none;
+				padding: 0;
+				margin: 0;
+			}
+			.steps :global(ol > li) {
+				counter-increment: step;
+				position: relative;
+				padding-left: 3rem;
+				margin-bottom: 1.75rem;
+				line-height: 1.65;
+			}
+			.steps :global(ol > li::before) {
+				content: counter(step);
+				position: absolute;
+				left: 0;
+				top: 0;
+				width: 2.1rem;
+				height: 2.1rem;
+				border-radius: 50%;
+				background: var(--recipe-primary);
+				color: white;
+				font-weight: 700;
+				font-size: 0.95rem;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+			.notes-box {
+				background: var(--recipe-cream);
+				border-left: 4px solid var(--recipe-primary);
+				border-radius: 0 var(--recipe-radius) var(--recipe-radius) 0;
+				padding: 1rem 1.25rem;
+				margin-top: 2.5rem;
+				font-size: 0.95rem;
+				color: var(--recipe-ink);
+			}
+			.notes-box strong {
+				display: block;
+				margin-bottom: 0.4rem;
+				text-transform: uppercase;
+				font-size: 0.72rem;
+				letter-spacing: 0.04em;
+				color: var(--recipe-soft-ink);
+			}
+			.notes-box p {
+				margin: 0;
+			}
+			.tag-row {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.5rem;
+				margin-top: 2.5rem;
+			}
+			.tag {
+				display: inline-block;
+				background: var(--recipe-cream);
+				color: var(--recipe-ink);
+				padding: 0.25rem 0.7rem;
+				border-radius: 999px;
+				font-size: 0.82rem;
+				text-decoration: none;
+			}
+			.tag:hover {
+				background: var(--recipe-primary);
+				color: white;
+			}
+
+			/* --- Cook mode: bigger text, chrome hidden, hands-free-ish
+			   scrolling for when your hands are covered in dough/raw meat
+			   and touching anything precisely isn't appealing. --- */
+			.cook-mode-btn {
+				border: 1px solid var(--recipe-primary);
+				background: none;
+				color: var(--recipe-primary);
+				padding: 0.3rem 0.8rem;
+				border-radius: 999px;
+				font-size: 0.85rem;
+				font-family: inherit;
+				cursor: pointer;
+				white-space: nowrap;
+			}
+			.cook-mode-btn:hover,
+			body.cook-mode .cook-mode-btn {
+				background: var(--recipe-primary);
+				color: white;
+			}
+			body.cook-mode :global(header),
+			body.cook-mode :global(footer),
+			body.cook-mode .tag-row,
+			body.cook-mode .meta-bar {
+				display: none;
+			}
+			body.cook-mode .steps :global(ol > li) {
+				font-size: 1.3rem;
+				line-height: 1.75;
+				margin-bottom: 2.5rem;
+			}
+			body.cook-mode .ingredient-list label {
+				font-size: 1.15rem;
+				padding: 0.65rem 0;
+			}
+			body.cook-mode .recipe-container {
+				padding-bottom: 8rem;
+			}
+			/* Big, sloppy-tap-friendly controls — usable with a knuckle or
+			   the back of a hand, not just a clean fingertip. Only shown in
+			   cook mode. */
+			.cook-controls {
+				display: none;
+				position: fixed;
+				right: 1.25rem;
+				bottom: 1.25rem;
+				flex-direction: column;
+				gap: 0.75rem;
+				z-index: 100;
+			}
+			body.cook-mode .cook-controls {
+				display: flex;
+			}
+			.cook-scroll-btn {
+				width: 4rem;
+				height: 4rem;
+				border-radius: 50%;
+				border: none;
+				background: var(--recipe-primary);
+				color: white;
+				font-size: 1.75rem;
+				box-shadow: 0 4px 14px rgba(41, 37, 33, 0.35);
+				cursor: pointer;
+			}
+			.voice-hint {
+				display: none;
+				position: fixed;
+				left: 1.25rem;
+				bottom: 1.25rem;
+				background: var(--recipe-ink);
+				color: white;
+				padding: 0.5rem 1rem;
+				border-radius: 999px;
+				font-size: 0.85rem;
+				z-index: 100;
+			}
+			body.cook-mode.voice-supported .voice-hint {
+				display: block;
+			}
+			body.cook-mode.voice-listening .voice-hint {
+				background: var(--recipe-primary);
+			}
+
+			@page {
+				margin: 1cm;
+			}
+			/* A printed recipe is a utility object, not a lifestyle page —
+			   plain sans-serif, tight spacing, no color that needs ink. */
+			@media print {
+				:global(header),
+				:global(footer),
+				.cook-mode-btn,
+				.cook-controls,
+				.voice-hint,
+				.source-link,
+				.tag-row {
+					display: none !important;
+				}
+				/* Must match the `body.recipe-body` selector exactly (not
+				   just `body`) — that rule sets the cream background outside
+				   this media query and otherwise wins on specificity. */
+				body.recipe-body {
+					background: white;
+					color: black;
+					font-family: Arial, Helvetica, sans-serif;
+					font-size: 10.5pt;
+				}
+				.recipe-container {
+					max-width: none;
+					padding: 0;
+				}
+				.recipe-header {
+					gap: 0.5rem;
+					margin-bottom: 0.25rem;
+				}
+				.thumb {
+					width: 40px;
+					height: 40px;
+				}
+				h1 {
+					font-family: Arial, Helvetica, sans-serif;
+					font-size: 16pt;
+					color: black;
+				}
+				.description {
+					font-size: 9.5pt;
+					color: #333;
+				}
+				.rating {
+					color: black;
+				}
+				.meta-bar {
+					background: none;
+					border: 1px solid black;
+					padding: 0.25rem 0.6rem;
+					margin: 0.35rem 0;
+					gap: 1rem;
+					font-size: 9.5pt;
+				}
+				.meta-bar dt {
+					color: #555;
+				}
+				h2 {
+					font-family: Arial, Helvetica, sans-serif;
+					font-size: 12.5pt;
+					color: black;
+					margin: 0.35rem 0 0.15rem;
+				}
+				.recipe-columns {
+					display: block;
+					margin-top: 0.25rem;
+				}
+				.ingredients-col {
+					position: static;
+					max-width: none;
+					background: none;
+					padding: 0;
+					margin-bottom: 0.4rem;
+				}
+				.ingredient-list {
+					gap: 0.06rem;
+				}
+				.ingredient-list label {
+					padding: 0.04rem 0;
+					font-size: 9.5pt;
+				}
+				.ingredient-list li + li {
+					border-top: none;
+				}
+				.ingredient-list input {
+					appearance: auto;
+					opacity: 1;
+					width: 0.7rem;
+					height: 0.7rem;
+				}
+				.ingredient-list input:checked::after {
+					content: none;
+				}
+				.steps :global(ol > li) {
+					font-size: 10pt;
+					line-height: 1.22;
+					margin-bottom: 0.3rem;
+					padding-left: 1.4rem;
+				}
+				.steps :global(ol > li::before) {
+					width: 1.1rem;
+					height: 1.1rem;
+					font-size: 7.5pt;
+					background: white;
+					border: 1.5px solid black;
+					color: black;
+				}
+				.notes-box {
+					background: none;
+					border-left: 2px solid black;
+					padding: 0.3rem 0.6rem;
+					margin-top: 0.75rem;
+					font-size: 9pt;
+				}
+				.notes-box strong {
+					color: black;
+				}
+				.recipe-card,
+				.recipe-columns * {
+					box-shadow: none !important;
+				}
+			}
+		</style>
+	</head>
+	<body class="recipe-theme recipe-body">
+		<Header />
+		<main class="recipe-container" data-pagefind-body>
+			<div class="recipe-header">
+				{heroImage && (
+					<div class="thumb">
+						<Image src={heroImage} alt={title} width={192} height={192} />
+					</div>
+				)}
+				<div class="title-block">
+					<div class="title-row">
+						<h1>{title}</h1>
+						{source && (
+							<a class="source-link" href={source} target="_blank" rel="noopener">View original ↗</a>
+						)}
+						<button type="button" class="cook-mode-btn" id="cook-mode-btn">🍳 Cook Mode</button>
+						<button type="button" class="cook-mode-btn" id="print-btn">🖨️ Print</button>
+					</div>
+					<p class="description">{description}</p>
+					{rating != null && <p class="rating">{'★'.repeat(rating)}{'☆'.repeat(5 - rating)}</p>}
+				</div>
+			</div>
+
+			<dl class="meta-bar">
+				{prepTime != null && <div><dt>Prep</dt><dd>{formatMinutes(prepTime)}</dd></div>}
+				{cookTime != null && <div><dt>Cook</dt><dd>{formatMinutes(cookTime)}</dd></div>}
+				{totalTime != null && <div><dt>Total</dt><dd>{formatMinutes(totalTime)}</dd></div>}
+				{servings != null && <div><dt>Servings</dt><dd>{servings}</dd></div>}
+			</dl>
+
+			<div class="recipe-columns">
+				{ingredients && ingredients.length > 0 && (
+					<section class="ingredients-col">
+						<h2>Ingredients</h2>
+						<ul class="ingredient-list">
+							{ingredients.map((ing: { name: string; amount?: number | string; unit?: string }) => {
+								const { quantity, name } = ingredientParts(ing);
+								return (
+									<li>
+										<label>
+											<input type="checkbox" />
+											<span>{quantity && <span class="quantity">{quantity}</span>} {name}</span>
+										</label>
+									</li>
+								);
+							})}
+						</ul>
+					</section>
+				)}
+
+				<div class="main-col">
+					<section class="steps">
+						<h2>Steps</h2>
+						<slot />
+					</section>
+
+					{notes && (
+						<div class="notes-box">
+							<strong>My notes</strong>
+							<p>{notes}</p>
+						</div>
+					)}
+
+					{tags && tags.length > 0 && (
+						<div class="tag-row">
+							{tags.map((tag: string) => (
+								<a class="tag" href={`/recipes/tags/${tag}`}>{tag}</a>
+							))}
+						</div>
+					)}
+				</div>
+			</div>
+		</main>
+		<Footer />
+
+		<div class="cook-controls">
+			<button type="button" class="cook-scroll-btn" id="cook-scroll-up" aria-label="Scroll up">▲</button>
+			<button type="button" class="cook-scroll-btn" id="cook-scroll-down" aria-label="Scroll down">▼</button>
+		</div>
+		<div class="voice-hint" id="voice-hint">🎤 Say "next" or "back"</div>
+
+		<script>
+			// Cook mode: bigger text, nav/footer hidden, screen stays awake,
+			// and scrolling works without a clean fingertip — big knuckle-
+			// friendly buttons always, plus voice commands ("next"/"back")
+			// on browsers that support SpeechRecognition.
+			const body = document.body;
+			const cookBtn = document.getElementById('cook-mode-btn');
+			const printBtn = document.getElementById('print-btn');
+			const scrollUpBtn = document.getElementById('cook-scroll-up');
+			const scrollDownBtn = document.getElementById('cook-scroll-down');
+
+			printBtn?.addEventListener('click', () => window.print());
+
+			let wakeLock: WakeLockSentinel | null = null;
+			let recognition: any = null;
+			let voiceActive = false;
+
+			const SpeechRecognitionCtor: any =
+				(window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+			if (SpeechRecognitionCtor) {
+				body.classList.add('voice-supported');
+			}
+
+			async function requestWakeLock() {
+				try {
+					if ('wakeLock' in navigator) {
+						wakeLock = await (navigator as any).wakeLock.request('screen');
+					}
+				} catch {
+					// Not supported, or denied — the big buttons still work.
+				}
+			}
+
+			function releaseWakeLock() {
+				wakeLock?.release().catch(() => {});
+				wakeLock = null;
+			}
+
+			function scrollByViewport(direction: 1 | -1) {
+				window.scrollBy({ top: direction * window.innerHeight * 0.75, behavior: 'smooth' });
+			}
+
+			function startVoiceControl() {
+				if (!SpeechRecognitionCtor || voiceActive) return;
+				recognition = new SpeechRecognitionCtor();
+				recognition.continuous = true;
+				recognition.interimResults = false;
+				recognition.lang = 'en-US';
+
+				recognition.onresult = (event: any) => {
+					const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
+					if (/\b(next|down|forward)\b/.test(transcript)) {
+						scrollByViewport(1);
+					} else if (/\b(back|previous|up)\b/.test(transcript)) {
+						scrollByViewport(-1);
+					} else if (/\b(stop|exit|done)\b/.test(transcript)) {
+						setCookMode(false);
+					}
+				};
+				recognition.onend = () => {
+					// Chrome stops recognition after a pause — keep it going
+					// for as long as cook mode is on.
+					if (voiceActive) {
+						try {
+							recognition.start();
+						} catch {
+							// already running
+						}
+					}
+				};
+				try {
+					recognition.start();
+					voiceActive = true;
+					body.classList.add('voice-listening');
+				} catch {
+					// mic permission denied, or already started
+				}
+			}
+
+			function stopVoiceControl() {
+				voiceActive = false;
+				body.classList.remove('voice-listening');
+				try {
+					recognition?.stop();
+				} catch {
+					// already stopped
+				}
+				recognition = null;
+			}
+
+			function setCookMode(on: boolean) {
+				body.classList.toggle('cook-mode', on);
+				if (on) {
+					requestWakeLock();
+					startVoiceControl();
+				} else {
+					releaseWakeLock();
+					stopVoiceControl();
+				}
+			}
+
+			cookBtn?.addEventListener('click', () => setCookMode(!body.classList.contains('cook-mode')));
+			scrollUpBtn?.addEventListener('click', () => scrollByViewport(-1));
+			scrollDownBtn?.addEventListener('click', () => scrollByViewport(1));
+
+			// The wake lock is auto-released when the tab is hidden (phone
+			// screen locked, app switched away) — re-acquire it when the
+			// user comes back, as long as cook mode is still on.
+			document.addEventListener('visibilitychange', () => {
+				if (document.visibilityState === 'visible' && body.classList.contains('cook-mode')) {
+					requestWakeLock();
+				}
+			});
+		</script>
+	</body>
+</html>

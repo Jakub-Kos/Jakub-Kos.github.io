@@ -19,6 +19,45 @@
 		0 2px 6px rgba(var(--gray), 25%), 0 8px 24px rgba(var(--gray), 33%), 0 16px 32px
 		rgba(var(--gray), 33%);
 }
+
+/* Warm palette for the recipes section, applied to <body> on those pages
+   only — the rest of the site keeps the blue-gray gradient above. Modeled
+   on cooked.wiki's actual theme (terracotta/cream, EB Garamond titles). */
+.recipe-theme {
+	--recipe-primary: #d97757;
+	--recipe-primary-dark: #b8603f;
+	--recipe-cream: #efede3;
+	--recipe-bg: #fafaf7;
+	--recipe-ink: #292521;
+	--recipe-soft-ink: #706b57;
+	--recipe-radius: 12px;
+	--recipe-title-font: Georgia, "Times New Roman", serif;
+}
+/* Header/Footer are shared site-wide components with their own blue/gray
+   styling, which otherwise clashes hard against the warm recipe pages
+   sitting between them. Restyle just the two seams on recipe pages so the
+   whole page reads as one piece instead of three stacked themes. */
+body.recipe-theme header {
+	background: var(--recipe-cream);
+	box-shadow: none;
+	border-bottom: 1px solid rgba(41, 37, 33, 0.08);
+}
+body.recipe-theme header nav a.active {
+	border-bottom-color: var(--recipe-primary);
+}
+body.recipe-theme header h2 a {
+	color: var(--recipe-ink);
+}
+body.recipe-theme footer {
+	background: var(--recipe-bg);
+	color: var(--recipe-soft-ink);
+}
+body.recipe-theme footer .social-links a {
+	color: var(--recipe-soft-ink);
+}
+body.recipe-theme footer .social-links a:hover {
+	color: var(--recipe-primary);
+}
 @font-face {
 	font-family: "Atkinson";
 	src: url("/fonts/atkinson-regular.woff") format("woff");

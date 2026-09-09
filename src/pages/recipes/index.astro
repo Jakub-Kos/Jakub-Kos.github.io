@@ -1,0 +1,186 @@
+---
+// src/pages/recipes/index.astro
+import { Image } from 'astro:assets';
+import BaseHead from '../../components/BaseHead.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { getCollection } from 'astro:content';
+import { formatMinutes } from '../../utils/recipes';
+
+const recipeEntries = await getCollection('recipes', ({ data }) => !data.draft);
+recipeEntries.sort((a, b) => b.data.created.valueOf() - a.data.created.valueOf());
+
+const allTags = [...new Set(recipeEntries.flatMap((e) => e.data.tags))].sort();
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title="Recipes" description="Every recipe I actually cook, pulled out of chats and apps into one place." />
+		<link rel="alternate" type="application/rss+xml" title="Recipes RSS" href="/recipes/rss.xml" />
+		<style>
+			body.recipe-body {
+				background: var(--recipe-bg);
+			}
+			.tag-filters {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.5rem;
+				margin: 1.25rem 0 2rem;
+			}
+			.chip {
+				border: none;
+				cursor: pointer;
+				background: var(--recipe-cream);
+				color: var(--recipe-ink);
+				padding: 0.35rem 0.9rem;
+				border-radius: 999px;
+				font-size: 0.85rem;
+				font-family: inherit;
+			}
+			.chip.active {
+				background: var(--recipe-primary);
+				color: white;
+			}
+			.recipe-grid {
+				list-style: none;
+				padding: 0;
+				margin: 0;
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+				gap: 1.5rem;
+			}
+			.recipe-card {
+				background: var(--recipe-cream);
+				border-radius: var(--recipe-radius);
+				overflow: hidden;
+				box-shadow: 0 1px 3px rgba(41, 37, 33, 0.1);
+				transition: transform 0.15s ease, box-shadow 0.15s ease;
+			}
+			.recipe-card:hover {
+				transform: translateY(-3px);
+				box-shadow: 0 8px 20px rgba(41, 37, 33, 0.15);
+			}
+			.card-link {
+				display: block;
+				text-decoration: none;
+				color: inherit;
+			}
+			.card-photo {
+				width: 100%;
+				aspect-ratio: 4 / 3;
+				object-fit: cover;
+				display: block;
+			}
+			.card-photo-placeholder {
+				width: 100%;
+				aspect-ratio: 4 / 3;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 2.5rem;
+				background: linear-gradient(135deg, var(--recipe-cream), #e2ded0);
+			}
+			.card-body {
+				padding: 0.9rem 1rem 1.1rem;
+			}
+			.card-title {
+				font-family: var(--recipe-title-font);
+				font-size: 1.1rem;
+				color: var(--recipe-ink);
+				margin: 0 0 0.35rem;
+			}
+			.card-desc {
+				font-size: 0.85rem;
+				color: var(--recipe-soft-ink);
+				margin: 0 0 0.6rem;
+				display: -webkit-box;
+				-webkit-line-clamp: 2;
+				-webkit-box-orient: vertical;
+				overflow: hidden;
+			}
+			.card-meta {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.75rem;
+				font-size: 0.8rem;
+				color: var(--recipe-soft-ink);
+			}
+		</style>
+	</head>
+	<body class="recipe-theme recipe-body">
+		<Header />
+		<main style="max-width: 1100px; margin: 0 auto; padding: 2rem 1rem;">
+			<h1 style="font-family: var(--recipe-title-font); font-weight: 400;">Recipes 🍳</h1>
+			<p style="color: var(--recipe-soft-ink);">
+				Every recipe worth keeping — no more digging through old chats or three different apps.
+				· <a href="/recipes/rss.xml" style="color: var(--recipe-primary);">RSS</a>
+			</p>
+
+			{allTags.length > 0 && (
+				<div class="tag-filters" id="tag-filters">
+					<button class="chip active" data-tag="">All</button>
+					{allTags.map((tag) => (
+						<button class="chip" data-tag={tag}>{tag}</button>
+					))}
+				</div>
+			)}
+
+			<ul class="recipe-grid" id="recipe-grid">
+				{recipeEntries.map((entry) => {
+					const totalTime =
+						entry.data.prepTime != null || entry.data.cookTime != null
+							? (entry.data.prepTime ?? 0) + (entry.data.cookTime ?? 0)
+							: undefined;
+					return (
+						<li class="recipe-card" data-tags={entry.data.tags.join(',')}>
+							<a class="card-link" href={`/recipes/${entry.id}`}>
+								{entry.data.heroImage ? (
+									<Image class="card-photo" src={entry.data.heroImage} alt={entry.data.title} width={440} height={330} />
+								) : (
+									<div class="card-photo-placeholder">🍳</div>
+								)}
+								<div class="card-body">
+									<p class="card-title">{entry.data.title}</p>
+									<p class="card-desc">{entry.data.description}</p>
+									<div class="card-meta">
+										{totalTime != null && <span>⏱ {formatMinutes(totalTime)}</span>}
+										{entry.data.servings != null && <span>🍽 {entry.data.servings}</span>}
+										{entry.data.rating != null && <span>{'★'.repeat(entry.data.rating)}</span>}
+									</div>
+								</div>
+							</a>
+						</li>
+					);
+				})}
+			</ul>
+			{recipeEntries.length === 0 && <p>No recipes yet — add a <code>.md</code> file under <code>src/content/recipes/</code>.</p>}
+		</main>
+		<Footer />
+		<script>
+			const buttons = document.querySelectorAll<HTMLButtonElement>('#tag-filters .chip');
+			const cards = document.querySelectorAll<HTMLLIElement>('#recipe-grid .recipe-card');
+			const active = new Set<string>();
+
+			buttons.forEach((btn) => {
+				btn.addEventListener('click', () => {
+					const tag = btn.dataset.tag ?? '';
+					if (tag === '') {
+						active.clear();
+					} else {
+						active.has(tag) ? active.delete(tag) : active.add(tag);
+					}
+					buttons.forEach((b) => {
+						const t = b.dataset.tag ?? '';
+						b.classList.toggle('active', t === '' ? active.size === 0 : active.has(t));
+					});
+					cards.forEach((card) => {
+						const tags = (card.dataset.tags ?? '').split(',').filter(Boolean);
+						const show = active.size === 0 || tags.some((t) => active.has(t));
+						card.style.display = show ? '' : 'none';
+					});
+				});
+			});
+		</script>
+	</body>
+</html>
