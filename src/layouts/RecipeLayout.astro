@@ -462,6 +462,18 @@ const jsonLdHtml = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
 				align-items: center;
 				justify-content: center;
 			}
+			/* Optional step photos: a markdown image inside a list item. */
+			.steps :global(ol > li p) {
+				margin: 0 0 0.6rem;
+			}
+			.steps :global(ol > li img) {
+				display: block;
+				width: 100%;
+				max-width: 520px;
+				height: auto;
+				border-radius: var(--recipe-radius);
+				margin: 0.4rem 0 0;
+			}
 			.notes-box {
 				background: var(--recipe-cream);
 				border-left: 4px solid var(--recipe-primary);
@@ -729,6 +741,9 @@ const jsonLdHtml = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
 				}
 				.steps :global(.timer-chip) {
 					all: unset;
+				}
+				.steps :global(ol > li img) {
+					display: none;
 				}
 				.steps :global(.timer-chip)::before {
 					content: none;
