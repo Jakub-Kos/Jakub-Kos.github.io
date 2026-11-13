@@ -66,9 +66,8 @@ ingredients:
 notes: "No dill — chives or parsley work if you want something green. Salmon in Bilka comes in 600 g packs: either make 4 servings (double the vegetables) or freeze half. Choose the centre-cut piece over the tail."
 heroImage: "../../assets/recipes/salmon-sheet-pan.jpg"
 heroImageCredit:
-  author: "Gerda Arendt"
-  license: "CC0"
-  url: "https://commons.wikimedia.org/wiki/File:Steckenroth,_salmon_on_baked_vegetables.jpg"
+  author: "Blogger"
+  url: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEickP7VIrhqsobyg3CXCYziCRP6etSMCPG1FX0RtqTBrcjN2zcTDAdZP0zuoUMrRqEsv2Gra6DMTOESHTb8_DfFDCUsjE5xacItF7zLMKt8NWjEgNlhmkUpoRI-Ptb1A2QiAjZ_lsO94CXF/s1600/P7100096.JPG"
 created: 2026-11-02
 ---
 1. **Heat the oven.** Heat the oven to 200 °C (180 °C fan) and line a baking tray with parchment.

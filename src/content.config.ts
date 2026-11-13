@@ -112,13 +112,13 @@ const recipes = defineCollection({
 			// (which holds the steps as written).
 			notes: z.string().optional(),
 			heroImage: image().optional(),
-			// Attribution for a hero photo that isn't my own (e.g. from
-			// Wikimedia Commons). Shown under the recipe; CC BY / BY-SA
-			// licenses require it.
+			// Attribution for a hero photo that isn't my own. Shown under the
+			// recipe; CC BY / BY-SA licenses require it. `license` is omitted
+			// for photos taken from other recipe sites (credit only).
 			heroImageCredit: z
 				.object({
 					author: z.string(),
-					license: z.string(),
+					license: z.string().optional(),
 					// The photo's source page.
 					url: z.string().url(),
 				})

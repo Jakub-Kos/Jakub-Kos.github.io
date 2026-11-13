@@ -46,9 +46,9 @@ ingredients:
 notes: "Boneless thighs: cook on medium-high for 5–6 minutes per side instead. A thermometer is the surest test: at least 75 °C inside, juiciest at 80–85 °C; without one, the juices should run clear. Quantities follow the 4-serving version from the same chat."
 heroImage: "../../assets/recipes/chicken-thighs-oven-potatoes.jpg"
 heroImageCredit:
-  author: "VANOCE2022"
-  license: "CC0"
-  url: "https://commons.wikimedia.org/wiki/File:Marinated_chicken_thigh.jpg"
+  author: "Missvain"
+  license: "CC BY 4.0"
+  url: "https://commons.wikimedia.org/wiki/File:Chicken_thighs_-_the_girl_and_the_fig_-_May_2023_-_Sarah_Stierch_01.jpg"
 created: 2026-10-29
 ---
 1. **Start the potatoes.** Heat the oven to 220 °C (200 °C fan). Toss the potato chunks with the oil and salt and spread on a tray in one layer.

@@ -41,9 +41,8 @@ ingredients:
 notes: "One 50 g cube of fresh yeast covers three loaves. Stone-ground wholewheat flour soaks up more water — if the dough feels stiff, add a spoon or two more. With a cast-iron pot and lid, bake it in that instead (preheated, 25 minutes lid on, 15 minutes lid off) for an even better crust."
 heroImage: "../../assets/recipes/seeded-bread.jpg"
 heroImageCredit:
-  author: "Minja Klarić"
-  license: "CC BY-SA 4.0"
-  url: "https://commons.wikimedia.org/wiki/File:Domaci_hljeb_sa_sjemenkama_u_pekari_-_Bosnia_and_Herzegovina_(2025).jpg"
+  author: "toprecepty.cz"
+  url: "https://static.toprecepty.cz/fotky/recepty/0481/chleb-se-seminky-225754-670-377-nw.jpg"
 created: 2026-11-02
 ---
 1. **Dissolve the yeast.** In a large bowl, stir the yeast and honey into the lukewarm water.

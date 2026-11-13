@@ -68,9 +68,8 @@ ingredients:
 notes: "Hokkaido is easy to find in Bilka in November. For a spicier version add chilli or a teaspoon of red curry paste. If the cubes are bigger than 2–3 cm, the simmer can take 25–30 minutes."
 heroImage: "../../assets/recipes/pumpkin-soup.jpg"
 heroImageCredit:
-  author: "photonome"
-  license: "CC BY 2.0"
-  url: "https://commons.wikimedia.org/wiki/File:Pumpkin_soup_with_ginger_and_roasted_pumpkin_seeds.jpg"
+  author: "vareni.cz"
+  url: "https://vareni-production-cdn.xsd.cz/obrazky/recepty/17262/fa04fcc9-5f96-48de-a337-164900d47b65-velky.jpg"
 created: 2026-11-02
 ---
 1. **Prep the vegetables.** Wash the squash, halve it, scoop out the seeds with a spoon and cut it into 2–3 cm cubes, skin on. Peel and chop the potatoes, carrot, onion and garlic; grate the ginger.

@@ -978,7 +978,7 @@ const jsonLdHtml = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
 
 					{heroImageCredit && (
 						<p class="photo-credit">
-							Photo: <a href={heroImageCredit.url} target="_blank" rel="noopener">{heroImageCredit.author}</a>, {heroImageCredit.license}
+							Photo: <a href={heroImageCredit.url} target="_blank" rel="noopener">{heroImageCredit.author}</a>{heroImageCredit.license && `, ${heroImageCredit.license}`}
 						</p>
 					)}
 
