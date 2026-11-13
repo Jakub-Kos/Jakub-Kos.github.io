@@ -4,14 +4,22 @@
 // next to the title (not a full-width hero), a checklist-style ingredient
 // card, and numbered steps in a circle badge. Palette/fonts come from the
 // `.recipe-theme` class defined in global.css.
-import { Image } from 'astro:assets';
+import { Image, getImage } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import { formatMinutes, ingredientParts } from '../utils/recipes';
+import ItemDetails from '../components/ItemDetails.astro';
+import LocalNames from '../components/LocalNames.astro';
+import { AUTHOR_NAME, LANGUAGES, SHOPPING_LANGUAGE } from '../consts';
+import { formatMinutes, ingredientParts, isoDuration, parseAmount } from '../utils/recipes';
+
+type Ingredient = CollectionEntry<'recipes'>['data']['ingredients'][number];
+type Item = CollectionEntry<'items'>;
 
 const {
 	title,
+	names,
 	description,
 	tags,
 	source,
@@ -22,15 +30,65 @@ const {
 	rating,
 	notes,
 	heroImage,
+	heroImageCredit,
 	created,
 	updated,
-} = Astro.props;
+	// One resolved pantry item (or undefined) per ingredient, same order —
+	// computed in pages/recipes/[...slug].astro.
+	ingredientItems = [],
+	// Plain-text steps from the markdown body, for JSON-LD.
+	steps = [],
+} = Astro.props as CollectionEntry<'recipes'>['data'] & {
+	id: string;
+	ingredientItems?: (Item | undefined)[];
+	steps?: string[];
+};
 
 const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cookTime ?? 0) : undefined;
+
+// Consecutive ingredients sharing a `group` are listed under one sub-heading.
+const ingredientGroups: { name?: string; rows: { ing: Ingredient; index: number }[] }[] = [];
+ingredients.forEach((ing, index) => {
+	const last = ingredientGroups.at(-1);
+	if (last && last.name === ing.group) last.rows.push({ ing, index });
+	else ingredientGroups.push({ name: ing.group, rows: [{ ing, index }] });
+});
+
+// Each linked item gets one popover, however many ingredients point at it.
+const popoverItems = [...new Map(ingredientItems.filter((i): i is Item => !!i).map((i) => [i.id, i])).values()];
+const popoverId = (item: Item) => `item-pop-${item.id.replace(/[^a-z0-9-]/gi, '-')}`;
+
+// schema.org/Recipe, for search engines and link previews.
+const ldImage = heroImage ? await getImage({ src: heroImage, width: 1200, format: 'jpg' }) : undefined;
+const jsonLd = {
+	'@context': 'https://schema.org',
+	'@type': 'Recipe',
+	name: title,
+	alternateName: Object.values(names).length ? Object.values(names) : undefined,
+	description,
+	image: ldImage ? [new URL(ldImage.src, Astro.site).href] : undefined,
+	author: { '@type': 'Person', name: AUTHOR_NAME },
+	datePublished: created.toISOString().slice(0, 10),
+	dateModified: updated?.toISOString().slice(0, 10),
+	prepTime: prepTime != null ? isoDuration(prepTime) : undefined,
+	cookTime: cookTime != null ? isoDuration(cookTime) : undefined,
+	totalTime: totalTime != null ? isoDuration(totalTime) : undefined,
+	recipeYield: servings != null ? String(servings) : undefined,
+	keywords: tags.length ? tags.join(', ') : undefined,
+	recipeIngredient: ingredients.map((ing) => {
+		const { quantity, name } = ingredientParts(ing);
+		return quantity ? `${quantity} ${name}` : name;
+	}),
+	recipeInstructions: steps.map((text) => ({ '@type': 'HowToStep', text })),
+	isBasedOn: source,
+	url: new URL(Astro.url.pathname, Astro.site).href,
+};
+const jsonLdHtml = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
 ---
 <html lang="en">
 	<head>
-		<BaseHead title={title} description={description} />
+		<BaseHead title={title} description={description} image={heroImage} />
+		<script type="application/ld+json" set:html={jsonLdHtml} />
 		<style>
 			body.recipe-body {
 				background: var(--recipe-bg);
@@ -58,8 +116,14 @@ const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cook
 				background: var(--recipe-cream);
 				border-radius: var(--recipe-radius);
 				padding: 1.25rem;
-				position: sticky;
-				top: 1.5rem;
+			}
+			/* Only pin the card beside the steps when there's room for two
+			   columns; stacked on a phone it would cover the steps. */
+			@media (min-width: 760px) {
+				.ingredients-col {
+					position: sticky;
+					top: 1.5rem;
+				}
 			}
 			.main-col {
 				flex: 3 1 400px;
@@ -116,6 +180,10 @@ const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cook
 				color: var(--recipe-soft-ink);
 				margin: 0.4rem 0 0;
 			}
+			.title-names {
+				font-size: 1.05rem;
+				margin: 0.15rem 0 0;
+			}
 			.rating {
 				color: var(--recipe-primary);
 				letter-spacing: 0.1em;
@@ -146,6 +214,151 @@ const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cook
 				margin: 0.15rem 0 0;
 				font-weight: 700;
 			}
+			.servings dd {
+				display: flex;
+				align-items: center;
+				gap: 0.45rem;
+			}
+			#servings-value {
+				min-width: 1.5ch;
+				text-align: center;
+			}
+			.servings-btn {
+				width: 1.6rem;
+				height: 1.6rem;
+				border-radius: 50%;
+				border: 1px solid var(--recipe-primary);
+				background: none;
+				color: var(--recipe-primary);
+				font: inherit;
+				font-weight: 700;
+				line-height: 1;
+				cursor: pointer;
+				padding: 0;
+			}
+			.servings-btn:hover {
+				background: var(--recipe-primary);
+				color: white;
+			}
+			.ingredients-head {
+				display: flex;
+				align-items: baseline;
+				justify-content: space-between;
+				gap: 0.5rem;
+			}
+			.ingredients-head h2 {
+				margin-top: 0;
+			}
+			.reset-checks,
+			.pantry-link {
+				background: none;
+				border: none;
+				padding: 0;
+				font: inherit;
+				font-size: 0.8rem;
+				color: var(--recipe-soft-ink);
+				cursor: pointer;
+				text-decoration: underline;
+			}
+			.pantry-link {
+				display: inline-block;
+				margin-top: 1rem;
+				text-decoration: none;
+			}
+			.reset-checks:hover,
+			.pantry-link:hover {
+				color: var(--recipe-primary);
+			}
+			.scale-note {
+				font-size: 0.8rem;
+				color: var(--recipe-primary-dark);
+				background: rgba(217, 119, 87, 0.1);
+				border-radius: 8px;
+				padding: 0.4rem 0.6rem;
+				margin: 0 0 0.75rem;
+			}
+			.ingredient-group {
+				font-size: 0.75rem;
+				text-transform: uppercase;
+				letter-spacing: 0.05em;
+				color: var(--recipe-soft-ink);
+				margin: 1.1rem 0 0.2rem;
+			}
+			.ingredient-group:first-of-type {
+				margin-top: 0.25rem;
+			}
+			.amt.scaled {
+				color: var(--recipe-primary-dark);
+			}
+			.amt.unscaled::after {
+				content: ' ' attr(data-factor);
+				font-weight: 400;
+				font-size: 0.8em;
+				color: var(--recipe-primary-dark);
+			}
+			.item-chip {
+				flex-shrink: 0;
+				align-self: center;
+				border: none;
+				background: rgba(217, 119, 87, 0.12);
+				color: var(--recipe-primary-dark);
+				font: inherit;
+				font-size: 0.75rem;
+				font-style: italic;
+				padding: 0.15rem 0.55rem;
+				border-radius: 999px;
+				cursor: pointer;
+				white-space: nowrap;
+			}
+			.item-chip:hover {
+				background: var(--recipe-primary);
+				color: white;
+			}
+			.item-pop {
+				border: none;
+				border-radius: var(--recipe-radius);
+				padding: 1.25rem 1.4rem;
+				width: min(22rem, calc(100vw - 2rem));
+				box-sizing: border-box;
+				background: var(--recipe-bg);
+				color: var(--recipe-ink);
+				box-shadow: 0 12px 40px rgba(41, 37, 33, 0.3);
+			}
+			.item-pop::backdrop {
+				background: rgba(41, 37, 33, 0.25);
+			}
+			.item-pop p {
+				margin: 0;
+			}
+			.item-pop-close {
+				position: absolute;
+				top: 0.6rem;
+				right: 0.7rem;
+				border: none;
+				background: none;
+				color: var(--recipe-soft-ink);
+				font-size: 1rem;
+				cursor: pointer;
+			}
+			.item-pop-name {
+				font-family: var(--recipe-title-font);
+				font-size: 1.3rem;
+			}
+			.item-pop-names {
+				margin-top: 0.1rem;
+			}
+			.item-pop-desc {
+				font-size: 0.9rem;
+				margin-top: 0.6rem !important;
+			}
+			.item-pop a {
+				color: var(--recipe-primary);
+			}
+			.item-pop-more {
+				display: inline-block;
+				margin-top: 1rem;
+				font-size: 0.85rem;
+			}
 			h2 {
 				font-family: var(--recipe-title-font);
 				font-weight: 400;
@@ -161,7 +374,14 @@ const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cook
 				flex-direction: column;
 				gap: 0.5rem;
 			}
+			.ingredient-list li {
+				display: flex;
+				align-items: baseline;
+				gap: 0.5rem;
+			}
 			.ingredient-list label {
+				flex: 1;
+				min-width: 0;
 				display: flex;
 				align-items: baseline;
 				gap: 0.65rem;
@@ -262,6 +482,14 @@ const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cook
 			.notes-box p {
 				margin: 0;
 			}
+			.photo-credit {
+				margin: 2rem 0 0;
+				font-size: 0.75rem;
+				color: var(--recipe-soft-ink);
+			}
+			.photo-credit a {
+				color: inherit;
+			}
 			.tag-row {
 				display: flex;
 				flex-wrap: wrap;
@@ -280,6 +508,93 @@ const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cook
 			.tag:hover {
 				background: var(--recipe-primary);
 				color: white;
+			}
+
+			/* --- Timers: durations in step text become chips (injected by
+			   the script, hence :global) that start a countdown in the tray. --- */
+			.steps :global(.timer-chip) {
+				border: none;
+				background: rgba(217, 119, 87, 0.14);
+				color: var(--recipe-primary-dark);
+				font: inherit;
+				font-weight: 700;
+				padding: 0 0.4rem;
+				border-radius: 6px;
+				cursor: pointer;
+			}
+			.steps :global(.timer-chip)::before {
+				content: '⏱ ';
+				font-weight: 400;
+			}
+			.steps :global(.timer-chip:hover) {
+				background: var(--recipe-primary);
+				color: white;
+			}
+			.timer-tray {
+				position: fixed;
+				top: 1rem;
+				right: 1rem;
+				z-index: 110;
+				display: flex;
+				flex-direction: column;
+				align-items: flex-end;
+				gap: 0.5rem;
+				max-width: calc(100vw - 2rem);
+			}
+			.timer-tray :global(.timer) {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				background: var(--recipe-ink);
+				color: white;
+				border-radius: 999px;
+				padding: 0.35rem 0.4rem 0.35rem 1rem;
+				box-shadow: 0 6px 18px rgba(41, 37, 33, 0.3);
+				font-size: 0.9rem;
+			}
+			.timer-tray :global(.timer-label) {
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				max-width: 11rem;
+				opacity: 0.8;
+			}
+			.timer-tray :global(.timer-clock) {
+				font-weight: 700;
+				font-variant-numeric: tabular-nums;
+				min-width: 3.2rem;
+				text-align: right;
+			}
+			.timer-tray :global(.timer.paused .timer-clock) {
+				opacity: 0.55;
+			}
+			.timer-tray :global(.timer.done) {
+				background: var(--recipe-primary);
+				animation: timer-pulse 1s ease-in-out infinite;
+			}
+			.timer-tray :global(button) {
+				border: none;
+				background: rgba(255, 255, 255, 0.15);
+				color: white;
+				border-radius: 999px;
+				min-width: 2rem;
+				height: 2rem;
+				font: inherit;
+				font-size: 0.8rem;
+				cursor: pointer;
+			}
+			.timer-tray :global(button:hover) {
+				background: rgba(255, 255, 255, 0.3);
+			}
+			@keyframes timer-pulse {
+				50% {
+					transform: scale(1.05);
+				}
+			}
+			@media (prefers-reduced-motion: reduce) {
+				.timer-tray :global(.timer.done) {
+					animation: none;
+				}
 			}
 
 			/* --- Cook mode: bigger text, chrome hidden, hands-free-ish
@@ -310,7 +625,26 @@ const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cook
 			body.cook-mode .steps :global(ol > li) {
 				font-size: 1.3rem;
 				line-height: 1.75;
-				margin-bottom: 2.5rem;
+				margin: 0 0 1.25rem -0.9rem;
+				padding: 0.9rem 0.9rem 0.9rem 3.9rem;
+				border-radius: var(--recipe-radius);
+				opacity: 0.35;
+				cursor: pointer;
+				transition: opacity 0.2s ease, background 0.2s ease;
+			}
+			body.cook-mode .steps :global(ol > li::before) {
+				left: 0.9rem;
+				top: 0.9rem;
+			}
+			body.cook-mode .steps :global(ol > li.cook-current) {
+				opacity: 1;
+				cursor: auto;
+				background: var(--recipe-cream);
+				box-shadow: inset 4px 0 0 var(--recipe-primary);
+			}
+			body.cook-mode .main-col {
+				/* room to centre the last step on screen */
+				padding-bottom: 40vh;
 			}
 			body.cook-mode .ingredient-list label {
 				font-size: 1.15rem;
@@ -334,7 +668,16 @@ const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cook
 			body.cook-mode .cook-controls {
 				display: flex;
 			}
-			.cook-scroll-btn {
+			.cook-progress {
+				align-self: center;
+				background: var(--recipe-ink);
+				color: white;
+				border-radius: 999px;
+				padding: 0.2rem 0.6rem;
+				font-size: 0.8rem;
+				font-variant-numeric: tabular-nums;
+			}
+			.cook-step-btn {
 				width: 4rem;
 				height: 4rem;
 				border-radius: 50%;
@@ -376,8 +719,39 @@ const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cook
 				.cook-controls,
 				.voice-hint,
 				.source-link,
-				.tag-row {
+				.tag-row,
+				.timer-tray,
+				.servings-btn,
+				.reset-checks,
+				.pantry-link,
+				.item-pop {
 					display: none !important;
+				}
+				.steps :global(.timer-chip) {
+					all: unset;
+				}
+				.steps :global(.timer-chip)::before {
+					content: none;
+				}
+				.item-chip {
+					background: none;
+					color: #444;
+					padding: 0;
+					font-size: 8.5pt;
+				}
+				.scale-note {
+					background: none;
+					color: black;
+					padding: 0;
+					font-size: 8.5pt;
+				}
+				.title-names {
+					font-size: 10pt;
+				}
+				.ingredient-group {
+					color: black;
+					margin: 0.3rem 0 0;
+					font-size: 8pt;
 				}
 				/* Must match the `body.recipe-body` selector exactly (not
 				   just `body`) — that rule sets the cream background outside
@@ -508,6 +882,7 @@ const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cook
 						<button type="button" class="cook-mode-btn" id="cook-mode-btn">🍳 Cook Mode</button>
 						<button type="button" class="cook-mode-btn" id="print-btn">🖨️ Print</button>
 					</div>
+					<div class="title-names"><LocalNames names={names} /></div>
 					<p class="description">{description}</p>
 					{rating != null && <p class="rating">{'★'.repeat(rating)}{'☆'.repeat(5 - rating)}</p>}
 				</div>
@@ -517,26 +892,74 @@ const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cook
 				{prepTime != null && <div><dt>Prep</dt><dd>{formatMinutes(prepTime)}</dd></div>}
 				{cookTime != null && <div><dt>Cook</dt><dd>{formatMinutes(cookTime)}</dd></div>}
 				{totalTime != null && <div><dt>Total</dt><dd>{formatMinutes(totalTime)}</dd></div>}
-				{servings != null && <div><dt>Servings</dt><dd>{servings}</dd></div>}
+				{servings != null && (
+					<div class="servings">
+						<dt>Servings</dt>
+						<dd>
+							<button type="button" class="servings-btn" data-delta="-1" aria-label="Fewer servings">−</button>
+							<span id="servings-value" data-base={servings} aria-live="polite">{servings}</span>
+							<button type="button" class="servings-btn" data-delta="1" aria-label="More servings">+</button>
+						</dd>
+					</div>
+				)}
 			</dl>
 
 			<div class="recipe-columns">
-				{ingredients && ingredients.length > 0 && (
+				{ingredients.length > 0 && (
 					<section class="ingredients-col">
-						<h2>Ingredients</h2>
-						<ul class="ingredient-list">
-							{ingredients.map((ing: { name: string; amount?: number | string; unit?: string }) => {
-								const { quantity, name } = ingredientParts(ing);
-								return (
-									<li>
-										<label>
-											<input type="checkbox" />
-											<span>{quantity && <span class="quantity">{quantity}</span>} {name}</span>
-										</label>
-									</li>
-								);
-							})}
-						</ul>
+						<div class="ingredients-head">
+							<h2>Ingredients</h2>
+							<button type="button" class="reset-checks" id="reset-checks" hidden>Uncheck all</button>
+						</div>
+						<p class="scale-note" id="scale-note" hidden></p>
+						{ingredientGroups.map((group) => (
+							<>
+								{group.name && <h3 class="ingredient-group">{group.name}</h3>}
+								<ul class="ingredient-list">
+									{group.rows.map(({ ing, index }) => {
+										const { name } = ingredientParts(ing);
+										const base = parseAmount(ing.amount);
+										const item = ingredientItems[index];
+										// The chip shows the name in the language I'm shopping in;
+										// "Spaghetti" → "Spaghetti" says nothing, so that's ⓘ.
+										const local = item?.data.names[SHOPPING_LANGUAGE];
+										const chipText =
+											local && ![name, item!.data.name].some((n) => n.toLowerCase() === local.toLowerCase()) ? local : 'ⓘ';
+										return (
+											<li>
+												<label>
+													<input type="checkbox" data-check={index} />
+													<span>
+														{(ing.amount != null || ing.unit) && (
+															<span class="quantity">
+																{ing.amount != null && (
+																	<span class="amt" data-base={base ?? undefined} data-unit={ing.unit}>{String(ing.amount)}</span>
+																)}
+																{ing.amount != null && ing.unit && ' '}
+																{ing.unit}
+															</span>
+														)}{' '}
+														{name}
+													</span>
+												</label>
+												{item && (
+													<button
+														type="button"
+														class="item-chip"
+														popovertarget={popoverId(item)}
+														lang={chipText !== 'ⓘ' ? SHOPPING_LANGUAGE : undefined}
+														title={`${item.data.name}: ${LANGUAGES[SHOPPING_LANGUAGE].label} name & where to buy`}
+													>
+														{chipText}
+													</button>
+												)}
+											</li>
+										);
+									})}
+								</ul>
+							</>
+						))}
+						<a class="pantry-link" href="/recipes/items">Pantry →</a>
 					</section>
 				)}
 
@@ -553,6 +976,12 @@ const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cook
 						</div>
 					)}
 
+					{heroImageCredit && (
+						<p class="photo-credit">
+							Photo: <a href={heroImageCredit.url} target="_blank" rel="noopener">{heroImageCredit.author}</a>, {heroImageCredit.license}
+						</p>
+					)}
+
 					{tags && tags.length > 0 && (
 						<div class="tag-row">
 							{tags.map((tag: string) => (
@@ -565,24 +994,321 @@ const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cook
 		</main>
 		<Footer />
 
+		{popoverItems.map((item) => (
+			<div class="item-pop" id={popoverId(item)} popover>
+				<button type="button" class="item-pop-close" popovertarget={popoverId(item)} popovertargetaction="hide" aria-label="Close">✕</button>
+				<p class="item-pop-name">{item.data.name}</p>
+				<div class="item-pop-names"><LocalNames names={item.data.names} /></div>
+				{item.data.description && <p class="item-pop-desc">{item.data.description}</p>}
+				<ItemDetails item={item} compact />
+				<a class="item-pop-more" href={`/recipes/items/${item.id}`}>Item page →</a>
+			</div>
+		))}
+
+		<div class="timer-tray" id="timer-tray" aria-live="polite"></div>
+
 		<div class="cook-controls">
-			<button type="button" class="cook-scroll-btn" id="cook-scroll-up" aria-label="Scroll up">▲</button>
-			<button type="button" class="cook-scroll-btn" id="cook-scroll-down" aria-label="Scroll down">▼</button>
+			<span class="cook-progress" id="cook-progress"></span>
+			<button type="button" class="cook-step-btn" id="cook-prev" aria-label="Previous step">▲</button>
+			<button type="button" class="cook-step-btn" id="cook-next" aria-label="Next step">▼</button>
 		</div>
-		<div class="voice-hint" id="voice-hint">🎤 Say "next" or "back"</div>
+		<div class="voice-hint" id="voice-hint">🎤 Say "next" / "další", "back" / "zpět", or "timer"</div>
 
 		<script>
-			// Cook mode: bigger text, nav/footer hidden, screen stays awake,
-			// and scrolling works without a clean fingertip — big knuckle-
-			// friendly buttons always, plus voice commands ("next"/"back")
-			// on browsers that support SpeechRecognition.
+			import { findDurations, formatAmount } from '../utils/recipes';
+
 			const body = document.body;
+
+			// --- Storage ------------------------------------------------------
+			// Per-recipe, per-browser conveniences only. Every access is
+			// wrapped: private windows and blocked storage just mean nothing
+			// is remembered.
+			function load<T>(store: () => Storage, kind: string, fallback: T): T {
+				try {
+					const raw = store().getItem(`recipe:${location.pathname}:${kind}`);
+					return raw ? (JSON.parse(raw) as T) : fallback;
+				} catch {
+					return fallback;
+				}
+			}
+			function save(store: () => Storage, kind: string, value: unknown) {
+				try {
+					store().setItem(`recipe:${location.pathname}:${kind}`, JSON.stringify(value));
+				} catch {
+					// ignore
+				}
+			}
+			const local = () => localStorage;
+			const session = () => sessionStorage;
+
+			// --- Servings scaling ---------------------------------------------
+			const servingsEl = document.getElementById('servings-value');
+			const scaleNote = document.getElementById('scale-note');
+			const baseServings = Number(servingsEl?.dataset.base) || 0;
+			let servings = baseServings;
+
+			function applyScale() {
+				const factor = baseServings ? servings / baseServings : 1;
+				if (servingsEl) servingsEl.textContent = String(servings);
+				const factorText = `×${Math.round(factor * 100) / 100}`;
+				document.querySelectorAll<HTMLElement>('.amt').forEach((el) => {
+					el.dataset.original ??= el.textContent ?? '';
+					el.classList.remove('scaled', 'unscaled');
+					el.removeAttribute('title');
+					if (factor === 1) {
+						el.textContent = el.dataset.original;
+					} else if (el.dataset.base) {
+						el.textContent = formatAmount(Number(el.dataset.base) * factor, el.dataset.unit);
+						el.classList.add('scaled');
+					} else {
+						el.textContent = el.dataset.original;
+						el.dataset.factor = factorText;
+						el.title = `Not scaled automatically — use ${factorText}`;
+						el.classList.add('unscaled');
+					}
+				});
+				if (scaleNote) {
+					scaleNote.hidden = factor === 1;
+					scaleNote.textContent = `Scaled ${factorText} from ${baseServings}. Amounts written inside the steps aren't scaled.`;
+				}
+			}
+			document.querySelectorAll<HTMLButtonElement>('.servings-btn').forEach((btn) =>
+				btn.addEventListener('click', () => {
+					servings = Math.max(1, servings + Number(btn.dataset.delta));
+					applyScale();
+				})
+			);
+
+			// --- Ingredient checkboxes (remembered per recipe) ----------------
+			const checks = [...document.querySelectorAll<HTMLInputElement>('input[data-check]')];
+			const resetBtn = document.getElementById('reset-checks');
+			const savedChecks = new Set(load<number[]>(local, 'checked', []));
+			function syncChecks() {
+				const checked = checks.filter((c) => c.checked).map((c) => Number(c.dataset.check));
+				save(local, 'checked', checked);
+				if (resetBtn) resetBtn.hidden = checked.length === 0;
+			}
+			checks.forEach((c) => {
+				c.checked = savedChecks.has(Number(c.dataset.check));
+				c.addEventListener('change', syncChecks);
+			});
+			if (resetBtn) resetBtn.hidden = savedChecks.size === 0;
+			resetBtn?.addEventListener('click', () => {
+				checks.forEach((c) => (c.checked = false));
+				syncChecks();
+			});
+
+			// --- Steps & timer chips -------------------------------------------
+			const stepEls = [...document.querySelectorAll<HTMLLIElement>('.steps ol > li')];
+			const stepLabel = (i: number) =>
+				stepEls[i].querySelector('strong')?.textContent?.replace(/[.:]\s*$/, '').trim() || `Step ${i + 1}`;
+
+			// Turn "15 minutes", "1.5-2 hours", "18–20 min" in step text into
+			// tap-to-start timer buttons.
+			stepEls.forEach((li, i) => {
+				const walker = document.createTreeWalker(li, NodeFilter.SHOW_TEXT);
+				const nodes: Text[] = [];
+				while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+				for (const node of nodes) {
+					// Right to left, so earlier match offsets stay valid.
+					for (const m of findDurations(node.data).reverse()) {
+						const match = node.splitText(m.index);
+						match.splitText(m.text.length);
+						const btn = document.createElement('button');
+						btn.type = 'button';
+						btn.className = 'timer-chip';
+						btn.textContent = m.text;
+						btn.title = 'Start a timer';
+						btn.dataset.seconds = String(m.seconds);
+						btn.dataset.step = String(i);
+						match.replaceWith(btn);
+					}
+				}
+			});
+
+			// --- Timers ----------------------------------------------------------
+			interface Timer {
+				id: string;
+				label: string;
+				// Wall-clock end while running; null while paused.
+				endsAt: number | null;
+				// Milliseconds left, kept up to date only while paused.
+				remaining: number;
+			}
+			const tray = document.getElementById('timer-tray')!;
+			// Timers survive a reload (phones love to discard background tabs).
+			let timers = load<Timer[]>(local, 'timers', []);
+			// Timers already finished at load time stay silent.
+			const alerted = new Set(timers.filter((t) => timeLeft(t) <= 0).map((t) => t.id));
+			let audio: AudioContext | null = null;
+			const baseTitle = document.title;
+
+			function timeLeft(t: Timer) {
+				return t.endsAt == null ? t.remaining : t.endsAt - Date.now();
+			}
+			function formatClock(ms: number) {
+				const total = Math.max(0, Math.ceil(ms / 1000));
+				const h = Math.floor(total / 3600);
+				const m = Math.floor((total % 3600) / 60);
+				const sec = String(total % 60).padStart(2, '0');
+				return h ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
+			}
+			function ensureAudio() {
+				try {
+					audio ??= new AudioContext();
+					audio.resume();
+				} catch {
+					// no Web Audio — the visual alert still works
+				}
+			}
+			function beep() {
+				if (!audio) return;
+				for (let k = 0; k < 3; k++) {
+					const t0 = audio.currentTime + k * 0.25;
+					const osc = audio.createOscillator();
+					const gain = audio.createGain();
+					osc.frequency.value = 880;
+					gain.gain.setValueAtTime(0.0001, t0);
+					gain.gain.exponentialRampToValueAtTime(0.3, t0 + 0.02);
+					gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
+					osc.connect(gain).connect(audio.destination);
+					osc.start(t0);
+					osc.stop(t0 + 0.2);
+				}
+			}
+			function persistTimers() {
+				save(local, 'timers', timers);
+			}
+			function startTimer(label: string, seconds: number) {
+				ensureAudio();
+				timers.push({
+					id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+					label,
+					endsAt: Date.now() + seconds * 1000,
+					remaining: seconds * 1000,
+				});
+				persistTimers();
+				renderTimers();
+			}
+			function renderTimers() {
+				tray.replaceChildren(
+					...timers.map((t) => {
+						const pill = document.createElement('div');
+						pill.className = 'timer';
+						pill.dataset.id = t.id;
+						const label = document.createElement('span');
+						label.className = 'timer-label';
+						label.textContent = t.label;
+						const clock = document.createElement('span');
+						clock.className = 'timer-clock';
+						const pause = document.createElement('button');
+						pause.type = 'button';
+						pause.dataset.action = 'pause';
+						const plus = document.createElement('button');
+						plus.type = 'button';
+						plus.dataset.action = 'plus';
+						plus.textContent = '+1';
+						plus.setAttribute('aria-label', 'Add one minute');
+						const close = document.createElement('button');
+						close.type = 'button';
+						close.dataset.action = 'close';
+						close.textContent = '✕';
+						close.setAttribute('aria-label', 'Dismiss timer');
+						pill.append(label, clock, pause, plus, close);
+						return pill;
+					})
+				);
+				tick();
+			}
+			function tick() {
+				let ringing: Timer | undefined;
+				for (const t of timers) {
+					const pill = tray.querySelector<HTMLElement>(`[data-id="${t.id}"]`);
+					if (!pill) continue;
+					const left = timeLeft(t);
+					const done = left <= 0;
+					pill.classList.toggle('done', done);
+					pill.classList.toggle('paused', t.endsAt == null);
+					pill.querySelector('.timer-clock')!.textContent = done ? 'Done!' : formatClock(left);
+					const pause = pill.querySelector<HTMLButtonElement>('[data-action="pause"]')!;
+					pause.hidden = done;
+					pause.textContent = t.endsAt == null ? '▶' : '⏸';
+					pause.setAttribute('aria-label', t.endsAt == null ? 'Resume' : 'Pause');
+					if (done && !alerted.has(t.id)) {
+						alerted.add(t.id);
+						navigator.vibrate?.([300, 150, 300, 150, 300]);
+					}
+					// Keep ringing for two minutes after it finishes, or until dismissed.
+					if (done && left > -120_000 && alerted.has(t.id)) ringing ??= t;
+				}
+				document.title = ringing ? `⏰ ${ringing.label} — done` : baseTitle;
+				if (ringing && Math.floor(Date.now() / 500) % 4 === 0) beep();
+			}
+			tray.addEventListener('click', (e) => {
+				const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-action]');
+				const id = btn?.closest<HTMLElement>('.timer')?.dataset.id;
+				const t = timers.find((x) => x.id === id);
+				if (!btn || !t) return;
+				ensureAudio();
+				if (btn.dataset.action === 'close') {
+					timers = timers.filter((x) => x !== t);
+				} else if (btn.dataset.action === 'pause') {
+					if (t.endsAt == null) {
+						t.endsAt = Date.now() + t.remaining;
+					} else {
+						t.remaining = t.endsAt - Date.now();
+						t.endsAt = null;
+					}
+				} else if (btn.dataset.action === 'plus') {
+					// +1 on a finished timer restarts it at one minute.
+					const left = Math.max(0, timeLeft(t)) + 60_000;
+					if (t.endsAt == null) t.remaining = left;
+					else t.endsAt = Date.now() + left;
+					alerted.delete(t.id);
+				}
+				persistTimers();
+				renderTimers();
+			});
+			document.addEventListener('click', (e) => {
+				const chip = (e.target as HTMLElement).closest<HTMLButtonElement>('.timer-chip');
+				if (!chip) return;
+				startTimer(stepLabel(Number(chip.dataset.step)), Number(chip.dataset.seconds));
+			});
+			renderTimers();
+			setInterval(tick, 500);
+
+			// --- Cook mode ------------------------------------------------------
+			// Bigger text, chrome hidden, screen kept awake, and one step in
+			// focus at a time — moved with the big buttons, arrow keys, or
+			// voice ("next" / "back" / "timer"), so a messy hand never has to
+			// scroll precisely.
 			const cookBtn = document.getElementById('cook-mode-btn');
 			const printBtn = document.getElementById('print-btn');
-			const scrollUpBtn = document.getElementById('cook-scroll-up');
-			const scrollDownBtn = document.getElementById('cook-scroll-down');
+			const prevBtn = document.getElementById('cook-prev');
+			const nextBtn = document.getElementById('cook-next');
+			const progress = document.getElementById('cook-progress');
+			let currentStep = 0;
 
 			printBtn?.addEventListener('click', () => window.print());
+
+			function setStep(i: number) {
+				if (!stepEls.length) return;
+				currentStep = Math.max(0, Math.min(stepEls.length - 1, i));
+				stepEls.forEach((li, j) => li.classList.toggle('cook-current', j === currentStep));
+				if (progress) progress.textContent = `${currentStep + 1} / ${stepEls.length}`;
+				stepEls[currentStep].scrollIntoView({ behavior: 'smooth', block: 'center' });
+				save(session, 'step', currentStep);
+			}
+			function startCurrentStepTimer() {
+				const chip = stepEls[currentStep]?.querySelector<HTMLButtonElement>('.timer-chip');
+				chip?.click();
+			}
+
+			stepEls.forEach((li, j) =>
+				li.addEventListener('click', () => {
+					if (body.classList.contains('cook-mode') && j !== currentStep) setStep(j);
+				})
+			);
 
 			let wakeLock: WakeLockSentinel | null = null;
 			let recognition: any = null;
@@ -609,24 +1335,29 @@ const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cook
 				wakeLock = null;
 			}
 
-			function scrollByViewport(direction: 1 | -1) {
-				window.scrollBy({ top: direction * window.innerHeight * 0.75, behavior: 'smooth' });
-			}
-
 			function startVoiceControl() {
 				if (!SpeechRecognitionCtor || voiceActive) return;
 				recognition = new SpeechRecognitionCtor();
 				recognition.continuous = true;
 				recognition.interimResults = false;
-				recognition.lang = 'en-US';
+				// Follows the browser language; English, Danish and Czech
+				// keywords are all understood below.
+				recognition.lang = navigator.language || 'en-US';
+
+				// \b only knows ASCII letters ("další" ends in í), so match
+				// whole words by Unicode letter boundaries instead.
+				const saidAny = (transcript: string, words: string[]) =>
+					new RegExp(`(?<!\\p{L})(${words.join('|')})(?!\\p{L})`, 'u').test(transcript);
 
 				recognition.onresult = (event: any) => {
 					const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
-					if (/\b(next|down|forward)\b/.test(transcript)) {
-						scrollByViewport(1);
-					} else if (/\b(back|previous|up)\b/.test(transcript)) {
-						scrollByViewport(-1);
-					} else if (/\b(stop|exit|done)\b/.test(transcript)) {
+					if (saidAny(transcript, ['next', 'down', 'forward', 'næste', 'další', 'dál', 'dále'])) {
+						setStep(currentStep + 1);
+					} else if (saidAny(transcript, ['back', 'previous', 'up', 'tilbage', 'forrige', 'zpět', 'zpátky', 'předchozí'])) {
+						setStep(currentStep - 1);
+					} else if (saidAny(transcript, ['timer', 'start', 'časovač', 'minutka'])) {
+						startCurrentStepTimer();
+					} else if (saidAny(transcript, ['stop', 'exit', 'done', 'færdig', 'konec', 'hotovo'])) {
 						setCookMode(false);
 					}
 				};
@@ -664,17 +1395,46 @@ const totalTime = prepTime != null || cookTime != null ? (prepTime ?? 0) + (cook
 			function setCookMode(on: boolean) {
 				body.classList.toggle('cook-mode', on);
 				if (on) {
+					ensureAudio();
 					requestWakeLock();
 					startVoiceControl();
+					setStep(load<number>(session, 'step', 0));
 				} else {
 					releaseWakeLock();
 					stopVoiceControl();
+					stepEls.forEach((li) => li.classList.remove('cook-current'));
 				}
 			}
 
 			cookBtn?.addEventListener('click', () => setCookMode(!body.classList.contains('cook-mode')));
-			scrollUpBtn?.addEventListener('click', () => scrollByViewport(-1));
-			scrollDownBtn?.addEventListener('click', () => scrollByViewport(1));
+			prevBtn?.addEventListener('click', () => setStep(currentStep - 1));
+			nextBtn?.addEventListener('click', () => setStep(currentStep + 1));
+
+			function popoverOpen() {
+				try {
+					return !!document.querySelector(':popover-open');
+				} catch {
+					return false;
+				}
+			}
+
+			document.addEventListener('keydown', (e) => {
+				if (!body.classList.contains('cook-mode') || e.metaKey || e.ctrlKey || e.altKey) return;
+				const target = e.target instanceof Element ? e.target : document.body;
+				if (target.closest('input, textarea, select, [contenteditable]')) return;
+				const onButton = !!target.closest('button');
+				if (['ArrowDown', 'ArrowRight', 'PageDown', 'j'].includes(e.key) || (e.key === ' ' && !onButton)) {
+					e.preventDefault();
+					setStep(currentStep + 1);
+				} else if (['ArrowUp', 'ArrowLeft', 'PageUp', 'k'].includes(e.key)) {
+					e.preventDefault();
+					setStep(currentStep - 1);
+				} else if (e.key === 't') {
+					startCurrentStepTimer();
+				} else if (e.key === 'Escape' && !popoverOpen()) {
+					setCookMode(false);
+				}
+			});
 
 			// The wake lock is auto-released when the tab is hidden (phone
 			// screen locked, app switched away) — re-acquire it when the

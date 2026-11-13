@@ -5,9 +5,28 @@ import BaseHead from '../../components/BaseHead.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import { getCollection } from 'astro:content';
-import { formatMinutes } from '../../utils/recipes';
+import LocalNames from '../../components/LocalNames.astro';
+import { findItem, formatMinutes } from '../../utils/recipes';
 
 const recipeEntries = await getCollection('recipes', ({ data }) => !data.draft);
+const items = await getCollection('items');
+
+// Everything the search box matches against: the title in every language,
+// description, tags, and ingredients by their written and localized names.
+const searchText = (entry: (typeof recipeEntries)[number]) =>
+	[
+		entry.data.title,
+		...Object.values(entry.data.names),
+		entry.data.description,
+		...entry.data.tags,
+		...entry.data.ingredients.flatMap((ing) => {
+			const item = findItem(ing, items);
+			return [ing.name, item?.data.name, ...Object.values(item?.data.names ?? {})];
+		}),
+	]
+		.filter(Boolean)
+		.join(' ')
+		.toLowerCase();
 recipeEntries.sort((a, b) => b.data.created.valueOf() - a.data.created.valueOf());
 
 const allTags = [...new Set(recipeEntries.flatMap((e) => e.data.tags))].sort();
@@ -22,11 +41,28 @@ const allTags = [...new Set(recipeEntries.flatMap((e) => e.data.tags))].sort();
 			body.recipe-body {
 				background: var(--recipe-bg);
 			}
+			.recipe-search {
+				width: 100%;
+				box-sizing: border-box;
+				padding: 0.6rem 1rem;
+				border-radius: 999px;
+				border: 1px solid rgba(41, 37, 33, 0.15);
+				background: white;
+				font: inherit;
+				margin-top: 1rem;
+			}
 			.tag-filters {
 				display: flex;
 				flex-wrap: wrap;
 				gap: 0.5rem;
-				margin: 1.25rem 0 2rem;
+				margin: 1rem 0 2rem;
+			}
+			.no-matches {
+				color: var(--recipe-soft-ink);
+			}
+			.card-names {
+				font-size: 0.82rem;
+				margin: -0.2rem 0 0.4rem;
 			}
 			.chip {
 				border: none;
@@ -114,8 +150,17 @@ const allTags = [...new Set(recipeEntries.flatMap((e) => e.data.tags))].sort();
 			<h1 style="font-family: var(--recipe-title-font); font-weight: 400;">Recipes 🍳</h1>
 			<p style="color: var(--recipe-soft-ink);">
 				Every recipe worth keeping — no more digging through old chats or three different apps.
+				· <a href="/recipes/items" style="color: var(--recipe-primary);">Pantry</a>
 				· <a href="/recipes/rss.xml" style="color: var(--recipe-primary);">RSS</a>
 			</p>
+
+			<input
+				class="recipe-search"
+				id="recipe-search"
+				type="search"
+				placeholder="Search — English, Czech or Danish, dish or ingredient…"
+				aria-label="Search recipes"
+			/>
 
 			{allTags.length > 0 && (
 				<div class="tag-filters" id="tag-filters">
@@ -133,7 +178,7 @@ const allTags = [...new Set(recipeEntries.flatMap((e) => e.data.tags))].sort();
 							? (entry.data.prepTime ?? 0) + (entry.data.cookTime ?? 0)
 							: undefined;
 					return (
-						<li class="recipe-card" data-tags={entry.data.tags.join(',')}>
+						<li class="recipe-card" data-tags={entry.data.tags.join(',')} data-search={searchText(entry)}>
 							<a class="card-link" href={`/recipes/${entry.id}`}>
 								{entry.data.heroImage ? (
 									<Image class="card-photo" src={entry.data.heroImage} alt={entry.data.title} width={440} height={330} />
@@ -142,6 +187,7 @@ const allTags = [...new Set(recipeEntries.flatMap((e) => e.data.tags))].sort();
 								)}
 								<div class="card-body">
 									<p class="card-title">{entry.data.title}</p>
+									<div class="card-names"><LocalNames names={entry.data.names} stacked /></div>
 									<p class="card-desc">{entry.data.description}</p>
 									<div class="card-meta">
 										{totalTime != null && <span>⏱ {formatMinutes(totalTime)}</span>}
@@ -154,13 +200,30 @@ const allTags = [...new Set(recipeEntries.flatMap((e) => e.data.tags))].sort();
 					);
 				})}
 			</ul>
+			<p class="no-matches" id="no-matches" hidden>No recipes match.</p>
 			{recipeEntries.length === 0 && <p>No recipes yet — add a <code>.md</code> file under <code>src/content/recipes/</code>.</p>}
 		</main>
 		<Footer />
 		<script>
 			const buttons = document.querySelectorAll<HTMLButtonElement>('#tag-filters .chip');
 			const cards = document.querySelectorAll<HTMLLIElement>('#recipe-grid .recipe-card');
+			const search = document.getElementById('recipe-search') as HTMLInputElement | null;
+			const noMatches = document.getElementById('no-matches');
 			const active = new Set<string>();
+
+			function applyFilters() {
+				const words = (search?.value ?? '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+				let visible = 0;
+				cards.forEach((card) => {
+					const tags = (card.dataset.tags ?? '').split(',').filter(Boolean);
+					const text = card.dataset.search ?? '';
+					const show =
+						(active.size === 0 || tags.some((t) => active.has(t))) && words.every((w) => text.includes(w));
+					card.style.display = show ? '' : 'none';
+					if (show) visible++;
+				});
+				if (noMatches) noMatches.hidden = visible > 0 || cards.length === 0;
+			}
 
 			buttons.forEach((btn) => {
 				btn.addEventListener('click', () => {
@@ -174,13 +237,10 @@ const allTags = [...new Set(recipeEntries.flatMap((e) => e.data.tags))].sort();
 						const t = b.dataset.tag ?? '';
 						b.classList.toggle('active', t === '' ? active.size === 0 : active.has(t));
 					});
-					cards.forEach((card) => {
-						const tags = (card.dataset.tags ?? '').split(',').filter(Boolean);
-						const show = active.size === 0 || tags.some((t) => active.has(t));
-						card.style.display = show ? '' : 'none';
-					});
+					applyFilters();
 				});
 			});
+			search?.addEventListener('input', applyFilters);
 		</script>
 	</body>
 </html>

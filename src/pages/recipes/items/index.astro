@@ -1,0 +1,154 @@
+---
+// src/pages/recipes/items/index.astro — the pantry: every ingredient item,
+// grouped by category, with its Danish name and where to get it.
+import BaseHead from '../../../components/BaseHead.astro';
+import Header from '../../../components/Header.astro';
+import Footer from '../../../components/Footer.astro';
+import { getCollection } from 'astro:content';
+import LocalNames from '../../../components/LocalNames.astro';
+import { findItem } from '../../../utils/recipes';
+
+const items = await getCollection('items');
+const recipes = await getCollection('recipes', ({ data }) => !data.draft);
+
+const usageCount = new Map<string, number>();
+for (const recipe of recipes) {
+	const used = new Set(recipe.data.ingredients.map((ing) => findItem(ing, items)?.id).filter(Boolean));
+	used.forEach((id) => usageCount.set(id!, (usageCount.get(id!) ?? 0) + 1));
+}
+
+const byCategory = new Map<string, typeof items>();
+for (const item of [...items].sort((a, b) => a.data.name.localeCompare(b.data.name))) {
+	const category = item.data.category ?? 'Other';
+	byCategory.set(category, [...(byCategory.get(category) ?? []), item]);
+}
+const categories = [...byCategory.keys()].sort((a, b) => (a === 'Other' ? 1 : b === 'Other' ? -1 : a.localeCompare(b)));
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title="Pantry" description="Ingredients I cook with — Czech and Danish names, where to find them, and what to use instead." />
+		<style>
+			body.recipe-body {
+				background: var(--recipe-bg);
+			}
+			main {
+				max-width: 900px;
+				margin: 0 auto;
+				padding: 2rem 1rem 4rem;
+			}
+			h1,
+			h2 {
+				font-family: var(--recipe-title-font);
+				font-weight: 400;
+				color: var(--recipe-ink);
+			}
+			h2 {
+				font-size: 1.3rem;
+				margin: 2rem 0 0.75rem;
+			}
+			.intro {
+				color: var(--recipe-soft-ink);
+			}
+			.intro a {
+				color: var(--recipe-primary);
+			}
+			.filter {
+				width: 100%;
+				box-sizing: border-box;
+				padding: 0.6rem 1rem;
+				border-radius: 999px;
+				border: 1px solid rgba(41, 37, 33, 0.15);
+				background: white;
+				font: inherit;
+				margin: 0.5rem 0 0.5rem;
+			}
+			.item-grid {
+				list-style: none;
+				padding: 0;
+				margin: 0;
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+				gap: 0.75rem;
+			}
+			.item-grid a {
+				display: block;
+				background: var(--recipe-cream);
+				border-radius: var(--recipe-radius);
+				padding: 0.75rem 1rem;
+				text-decoration: none;
+				color: var(--recipe-ink);
+				height: 100%;
+				box-sizing: border-box;
+			}
+			.item-grid a:hover {
+				box-shadow: 0 4px 12px rgba(41, 37, 33, 0.12);
+			}
+			.name {
+				font-weight: 700;
+			}
+			.names {
+				font-size: 0.85rem;
+				margin-top: 0.1rem;
+			}
+			.meta {
+				font-size: 0.8rem;
+				color: var(--recipe-soft-ink);
+				margin-top: 0.3rem;
+			}
+		</style>
+	</head>
+	<body class="recipe-theme recipe-body">
+		<Header />
+		<main>
+			<p><a href="/recipes" style="color: var(--recipe-primary);">&larr; recipes</a></p>
+			<h1>Pantry 🧺</h1>
+			<p class="intro">
+				What each ingredient is called in Czech and Danish, where I've found it, and what to use when it isn't
+				sold as such. Add an item as a file under
+				<code>src/content/items/</code>.
+			</p>
+			<input class="filter" id="item-filter" type="search" placeholder="Filter — English, Czech or Danish…" aria-label="Filter items" />
+
+			{categories.map((category) => (
+				<section class="category" data-category>
+					<h2>{category}</h2>
+					<ul class="item-grid">
+						{byCategory.get(category)!.map((item) => {
+							const count = usageCount.get(item.id) ?? 0;
+							return (
+								<li data-search={[item.data.name, ...Object.values(item.data.names), ...item.data.aliases].filter(Boolean).join(' ').toLowerCase()}>
+									<a href={`/recipes/items/${item.id}`}>
+										<div class="name">{item.data.name}</div>
+										<div class="names"><LocalNames names={item.data.names} stacked /></div>
+										<div class="meta">
+											{count > 0 ? `${count} recipe${count === 1 ? '' : 's'}` : 'not used yet'}
+											{item.data.where.length > 0 && ` · ${[...new Set(item.data.where.map((w) => w.city ?? w.store))].join(', ')}`}
+											{item.data.substitutes.length > 0 && ' · has substitutes'}
+										</div>
+									</a>
+								</li>
+							);
+						})}
+					</ul>
+				</section>
+			))}
+		</main>
+		<Footer />
+		<script>
+			const input = document.getElementById('item-filter') as HTMLInputElement | null;
+			input?.addEventListener('input', () => {
+				const q = input.value.trim().toLowerCase();
+				document.querySelectorAll<HTMLElement>('[data-category]').forEach((section) => {
+					let visible = 0;
+					section.querySelectorAll<HTMLElement>('li[data-search]').forEach((li) => {
+						const show = !q || (li.dataset.search ?? '').includes(q);
+						li.style.display = show ? '' : 'none';
+						if (show) visible++;
+					});
+					section.style.display = visible ? '' : 'none';
+				});
+			});
+		</script>
+	</body>
+</html>

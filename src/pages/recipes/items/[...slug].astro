@@ -1,0 +1,111 @@
+---
+// src/pages/recipes/items/[...slug].astro — one pantry item: its names,
+// substitutes and where to buy it, longer notes from the markdown body, and
+// which recipes use it.
+import BaseHead from '../../../components/BaseHead.astro';
+import Header from '../../../components/Header.astro';
+import Footer from '../../../components/Footer.astro';
+import ItemDetails from '../../../components/ItemDetails.astro';
+import LocalNames from '../../../components/LocalNames.astro';
+import { getCollection, render } from 'astro:content';
+import { findItem } from '../../../utils/recipes';
+
+export async function getStaticPaths() {
+	const items = await getCollection('items');
+	const recipes = await getCollection('recipes', ({ data }) => !data.draft);
+	return items.map((item) => ({
+		params: { slug: item.id },
+		props: {
+			item,
+			usedIn: recipes
+				.filter((r) => r.data.ingredients.some((ing) => findItem(ing, items)?.id === item.id))
+				.sort((a, b) => a.data.title.localeCompare(b.data.title)),
+		},
+	}));
+}
+
+const { item, usedIn } = Astro.props;
+const { Content } = await render(item);
+const { name, names, aliases, category, description } = item.data;
+const otherNames = Object.values(names).filter((n) => n.toLowerCase() !== name.toLowerCase());
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={otherNames.length ? `${name} (${otherNames.join(', ')})` : name} description={description ?? `${name} — where to find it.`} />
+		<style>
+			body.recipe-body {
+				background: var(--recipe-bg);
+			}
+			main {
+				max-width: 720px;
+				margin: 0 auto;
+				padding: 2rem 1rem 4rem;
+			}
+			h1,
+			h2 {
+				font-family: var(--recipe-title-font);
+				font-weight: 400;
+				color: var(--recipe-ink);
+			}
+			h1 {
+				margin-bottom: 0.2rem;
+			}
+			h2 {
+				font-size: 1.25rem;
+				margin: 2rem 0 0.6rem;
+			}
+			.names {
+				font-size: 1.2rem;
+			}
+			.aka,
+			.muted {
+				color: var(--recipe-soft-ink);
+				font-size: 0.9rem;
+			}
+			.description {
+				background: var(--recipe-cream);
+				border-radius: var(--recipe-radius);
+				padding: 0.7rem 1rem;
+			}
+			.description {
+				margin-top: 1.25rem;
+			}
+			a {
+				color: var(--recipe-primary);
+			}
+		</style>
+	</head>
+	<body class="recipe-theme recipe-body">
+		<Header />
+		<main data-pagefind-body>
+			<p><a href="/recipes/items">&larr; pantry</a></p>
+			<h1>{name}</h1>
+			<div class="names"><LocalNames names={names} /></div>
+			{(aliases.length > 0 || category) && (
+				<p class="aka">
+					{category}
+					{category && aliases.length > 0 && ' · '}
+					{aliases.length > 0 && `also: ${aliases.join(', ')}`}
+				</p>
+			)}
+			{description && <p class="description">{description}</p>}
+
+			<ItemDetails item={item} />
+
+			<Content />
+
+			<h2>Used in</h2>
+			{usedIn.length > 0 ? (
+				<ul>
+					{usedIn.map((r) => (
+						<li><a href={`/recipes/${r.id}`}>{r.data.title}</a></li>
+					))}
+				</ul>
+			) : (
+				<p class="muted">No recipes yet.</p>
+			)}
+		</main>
+		<Footer />
+	</body>
+</html>

@@ -1,5 +1,8 @@
 ---
 title: "Pan Dulce"
+names:
+  cs: "Mexické sladké bulky (conchas)"
+  da: "Mexicanske søde boller (conchas)"
 description: "Mexican sweet bread rolls (conchas) with a sugar-cookie shell scored into a shell pattern."
 tags: ["mexican", "bread", "breakfast"]
 source: "https://preppykitchen.com/pan-dulce/"
@@ -8,39 +11,57 @@ servings: 12
 ingredients:
   - name: "dry yeast (or 1 tablespoon)"
     amount: "1 package"
+    group: "Dough"
+    item: "dry-yeast"
   - name: "milk"
     amount: "¾"
     unit: "cup"
+    group: "Dough"
   - name: "butter, melted"
     amount: "½"
     unit: "cup"
+    group: "Dough"
+    item: "butter"
   - name: "sugar, divided"
     amount: "½"
     unit: "cup"
+    group: "Dough"
+    item: "sugar"
   - name: "eggs, room temperature"
     amount: 3
+    group: "Dough"
+    item: "eggs"
   - name: "salt"
     amount: 1
     unit: "teaspoon"
+    group: "Dough"
   - name: "vanilla extract"
     amount: 1
     unit: "tsp"
+    group: "Dough"
   - name: "flour"
     amount: "4 ½"
     unit: "cups"
+    group: "Dough"
   - name: "unsalted butter, very soft"
     amount: "½"
     unit: "cup"
+    group: "Topping"
+    item: "butter"
   - name: "powdered sugar"
     amount: 1
     unit: "cup"
+    group: "Topping"
   - name: "flour"
     amount: 1
     unit: "cup"
+    group: "Topping"
   - name: "vanilla extract"
     amount: 1
     unit: "tbsp"
+    group: "Topping"
   - name: "Optional: food coloring, cocoa powder, cinnamon"
+    group: "Topping"
 created: 2026-09-09
 ---
 1. **Activate yeast.** Warm the milk to about 110°F, then transfer to the bowl of a stand mixer (or a large bowl if using a hand mixer). Mix in half the sugar and the yeast. Set aside for about 5 minutes, or until the yeast is bubbly.

@@ -1,0 +1,67 @@
+---
+// The "CS Cibule · DA Løg" line: a recipe's or item's names in every
+// language from LANGUAGES, in that order, each tagged with its language.
+import { LANGUAGES, type Lang } from '../consts';
+
+interface Props {
+	names: Partial<Record<Lang, string>>;
+	// One name per line, each cut off with "…" — for narrow cards.
+	stacked?: boolean;
+	class?: string;
+}
+
+const { names, stacked = false, class: className } = Astro.props;
+const entries = (Object.keys(LANGUAGES) as Lang[]).filter((lang) => names[lang]).map((lang) => [lang, names[lang]!] as const);
+---
+{entries.length > 0 && (
+	<p class:list={['local-names', { stacked }, className]}>
+		{entries.map(([lang, name], i) => (
+			<>
+				{i > 0 && <span class="sep" aria-hidden="true"> · </span>}
+				<span class="name">
+					<abbr class="lang" title={LANGUAGES[lang].label}>{lang}</abbr>
+					<span lang={lang}>{name}</span>
+				</span>
+			</>
+		))}
+	</p>
+)}
+
+<style>
+	.local-names {
+		font-family: var(--recipe-title-font);
+		font-style: italic;
+		color: var(--recipe-primary-dark);
+		margin: 0;
+	}
+	.stacked .name {
+		display: block;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.stacked .sep {
+		display: none;
+	}
+	.lang {
+		font-family: system-ui, sans-serif;
+		font-style: normal;
+		font-size: 0.62em;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		text-decoration: none;
+		vertical-align: 0.15em;
+		margin-right: 0.3em;
+		opacity: 0.65;
+	}
+	.sep {
+		opacity: 0.5;
+	}
+	@media print {
+		.local-names {
+			font-family: Arial, Helvetica, sans-serif;
+			color: #333;
+		}
+	}
+</style>

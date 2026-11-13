@@ -1,5 +1,12 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
+import { LANGUAGES, type Lang } from './consts';
+
+// Names in other languages, keyed by the codes in LANGUAGES (consts.ts),
+// e.g. { cs: "Cibule", da: "Løg" }. Every key is optional.
+const localizedNames = z
+	.record(z.enum(Object.keys(LANGUAGES) as [Lang, ...Lang[]]), z.string())
+	.default({});
 
 const blog = defineCollection({
 	loader: glob({ base: './src/content/blog', pattern: '**/*.{md,mdx}' }),
@@ -68,6 +75,10 @@ const recipes = defineCollection({
 	schema: ({ image }) =>
 		z.object({
 			title: z.string(),
+			// The dish's name in other languages, so it can be found by what
+			// it's called in Czech or Danish. Shown under the title and on
+			// cards, used as JSON-LD `alternateName`, and searchable.
+			names: localizedNames,
 			description: z.string(),
 			tags: z.array(z.string()).default([]),
 			// A link to where the recipe originally came from, if anywhere.
@@ -80,8 +91,19 @@ const recipes = defineCollection({
 				.array(
 					z.object({
 						name: z.string(),
+						// Numbers and simple fractions ("¾", "4 ½", "1/2")
+						// scale with the servings stepper; anything else
+						// ("1 package") is shown as written.
 						amount: z.union([z.number(), z.string()]).optional(),
 						unit: z.string().optional(),
+						// Sub-heading this ingredient sits under, e.g.
+						// "Dough" / "Topping". Consecutive ingredients with
+						// the same group are listed together.
+						group: z.string().optional(),
+						// Id of an entry in the `items` collection (its file
+						// name, e.g. "flour"). If omitted, the ingredient
+						// name is matched against item names/aliases.
+						item: z.string().optional(),
 					})
 				)
 				.default([]),
@@ -90,6 +112,17 @@ const recipes = defineCollection({
 			// (which holds the steps as written).
 			notes: z.string().optional(),
 			heroImage: image().optional(),
+			// Attribution for a hero photo that isn't my own (e.g. from
+			// Wikimedia Commons). Shown under the recipe; CC BY / BY-SA
+			// licenses require it.
+			heroImageCredit: z
+				.object({
+					author: z.string(),
+					license: z.string(),
+					// The photo's source page.
+					url: z.string().url(),
+				})
+				.optional(),
 			created: z.coerce.date(),
 			updated: z.coerce.date().optional(),
 			// Lets a recipe be committed mid-transcription without showing up
@@ -98,4 +131,46 @@ const recipes = defineCollection({
 		}),
 });
 
-export const collections = { blog, wiki, glossary, recipes };
+// The pantry: ingredients as things you buy. Recipes link to these from
+// their ingredient list (see `item` above), mainly to answer "what is this
+// called in Danish and where do I get it?".
+const items = defineCollection({
+	loader: glob({ base: './src/content/items', pattern: '**/*.{md,mdx}' }),
+	schema: z.object({
+		name: z.string(),
+		// e.g. { cs: "Hladká mouka", da: "Hvedemel" }.
+		names: localizedNames,
+		// Other names recipe ingredients may use for this item; matched
+		// case-insensitively, like `name` and `names`.
+		aliases: z.array(z.string()).default([]),
+		// Free-form grouping for the pantry page, e.g. "Baking", "Dairy".
+		category: z.string().optional(),
+		// One or two lines, shown in the popover on recipe pages. The
+		// markdown body is for longer notes and only shows on the item page.
+		description: z.string().optional(),
+		where: z
+			.array(
+				z.object({
+					store: z.string(),
+					// e.g. "Copenhagen", "Prague". Entries for SHOPPING_CITY
+					// (consts.ts) are listed first; omit for "anywhere".
+					city: z.string().optional(),
+					note: z.string().optional(),
+					url: z.string().url().optional(),
+				})
+			)
+			.default([]),
+		// What to use instead where this item isn't sold as such — e.g.
+		// tvaroh in Copenhagen. `city` works like in `where`.
+		substitutes: z
+			.array(
+				z.object({
+					city: z.string().optional(),
+					note: z.string(),
+				})
+			)
+			.default([]),
+	}),
+});
+
+export const collections = { blog, wiki, glossary, recipes, items };

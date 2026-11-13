@@ -2,18 +2,29 @@
 // src/pages/recipes/[...slug].astro
 import { getCollection, render } from 'astro:content';
 import RecipeLayout from '../../layouts/RecipeLayout.astro';
+import { extractSteps, findItem } from '../../utils/recipes';
 
 export async function getStaticPaths() {
 	const entries = await getCollection('recipes', ({ data }) => !data.draft);
+	const items = await getCollection('items');
 	return entries.map((entry) => ({
 		params: { slug: entry.id },
-		props: { entry },
+		props: { entry, items },
 	}));
 }
 
-const { entry } = Astro.props;
+const { entry, items } = Astro.props;
 const { Content } = await render(entry);
+
+// One resolved pantry item (or undefined) per ingredient, same order.
+const ingredientItems = entry.data.ingredients.map((ing) => {
+	const item = findItem(ing, items);
+	if (ing.item && !item) {
+		console.warn(`[recipes] ${entry.id}: ingredient "${ing.name}" points at unknown item "${ing.item}"`);
+	}
+	return item;
+});
 ---
-<RecipeLayout {...entry.data}>
+<RecipeLayout {...entry.data} id={entry.id} ingredientItems={ingredientItems} steps={extractSteps(entry.body)}>
 	<Content />
 </RecipeLayout>

@@ -1,0 +1,126 @@
+---
+// A pantry item's practical details: substitutes and where to buy it,
+// grouped by city with SHOPPING_CITY first. Shared by the popover on recipe
+// pages and the item's own page.
+import type { CollectionEntry } from 'astro:content';
+import { SHOPPING_CITY } from '../consts';
+import { sortByCity } from '../utils/recipes';
+
+interface Props {
+	item: CollectionEntry<'items'>;
+	// Smaller headings for the popover.
+	compact?: boolean;
+}
+
+const { item, compact = false } = Astro.props;
+const substitutes = sortByCity(item.data.substitutes, SHOPPING_CITY);
+
+// Consecutive runs of the same city, already in display order.
+const whereGroups: { city?: string; entries: CollectionEntry<'items'>['data']['where'] }[] = [];
+for (const w of sortByCity(item.data.where, SHOPPING_CITY)) {
+	const last = whereGroups.at(-1);
+	if (last && last.city === w.city) last.entries.push(w);
+	else whereGroups.push({ city: w.city, entries: [w] });
+}
+const Heading = compact ? 'p' : 'h2';
+---
+<div class:list={['item-details', { compact }]}>
+	{substitutes.length > 0 && (
+		<>
+			<Heading class="label">Substitutes</Heading>
+			<ul class="list">
+				{substitutes.map((s) => (
+					<li class:list={{ here: s.city === SHOPPING_CITY }}>
+						{s.city && <span class="city">{s.city}</span>}
+						{s.note}
+					</li>
+				))}
+			</ul>
+		</>
+	)}
+
+	<Heading class="label">Where to get it</Heading>
+	{whereGroups.length > 0 ? (
+		whereGroups.map((group) => (
+			<>
+				<p class:list={['city-heading', { here: group.city === SHOPPING_CITY }]}>{group.city ?? 'Anywhere'}</p>
+				<ul class="list">
+					{group.entries.map((w) => (
+						<li>
+							<strong>{w.url ? <a href={w.url} target="_blank" rel="noopener">{w.store}</a> : w.store}</strong>
+							{w.note && <span> — {w.note}</span>}
+						</li>
+					))}
+				</ul>
+			</>
+		))
+	) : (
+		<p class="empty">Nothing noted yet.</p>
+	)}
+</div>
+
+<style>
+	.label {
+		font-family: var(--recipe-title-font);
+		font-weight: 400;
+		font-size: 1.25rem;
+		color: var(--recipe-ink);
+		margin: 2rem 0 0.6rem;
+	}
+	.compact .label {
+		font-family: inherit;
+		font-size: 0.72rem;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--recipe-soft-ink);
+		margin: 1rem 0 0.3rem;
+	}
+	.list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+	.list li {
+		background: var(--recipe-cream);
+		border-radius: 8px;
+		padding: 0.55rem 0.8rem;
+		font-size: 0.92rem;
+	}
+	.list li.here {
+		box-shadow: inset 3px 0 0 var(--recipe-primary);
+	}
+	.compact .list li {
+		font-size: 0.88rem;
+		padding: 0.45rem 0.7rem;
+	}
+	.city,
+	.city-heading {
+		font-size: 0.72rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--recipe-soft-ink);
+	}
+	.city {
+		display: block;
+		margin-bottom: 0.1rem;
+	}
+	.city-heading {
+		margin: 0.6rem 0 0.3rem;
+	}
+	.city-heading.here,
+	.here .city {
+		color: var(--recipe-primary-dark);
+	}
+	.empty {
+		color: var(--recipe-soft-ink);
+		font-size: 0.9rem;
+		margin: 0;
+	}
+	a {
+		color: var(--recipe-primary);
+	}
+</style>

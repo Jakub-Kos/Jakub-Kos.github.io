@@ -1,5 +1,8 @@
 ---
 title: "Fried Onion Pasta"
+names:
+  cs: "Těstoviny se smaženou cibulí"
+  da: "Pasta med stegte løg"
 description: "Quick weeknight pasta with deeply caramelized onions and garlic."
 tags: ["pasta", "quick", "vegetarian"]
 prepTime: 10
@@ -23,6 +26,11 @@ ingredients:
     unit: "g"
 rating: 4
 notes: "Worth cooking the onions much longer than feels necessary — deep golden brown, not just soft."
+heroImage: "../../assets/recipes/fried-onion-pasta.jpg"
+heroImageCredit:
+  author: "Serial Number 54129"
+  license: "CC BY-SA 4.0"
+  url: "https://commons.wikimedia.org/wiki/File:Spaghetti_alla_cipolla.jpg"
 created: 2026-09-09
 ---
 1. Slice the onions thin. Cook them low and slow in olive oil for about 15 minutes, stirring occasionally, until deeply caramelized.
