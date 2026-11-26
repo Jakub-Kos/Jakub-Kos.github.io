@@ -18,10 +18,6 @@ ingredients:
     amount: 1
     group: "Chicken"
     item: "onion"
-  - name: "garlic cloves, crushed"
-    amount: 2
-    group: "Chicken"
-    item: "garlic"
   - name: "oil or butter"
     amount: 2
     unit: "tbsp"
@@ -42,11 +38,6 @@ ingredients:
     unit: "tbsp"
     group: "Sauce"
     item: "paprika"
-  - name: "tomato paste"
-    amount: 1
-    unit: "tbsp"
-    group: "Sauce"
-    item: "tomato-paste"
   - name: "chicken stock"
     amount: 200
     unit: "ml"
@@ -76,11 +67,11 @@ created: 2026-09-14
 ---
 1. **Start the rice.** Rinse the rice and put it on to cook according to the packet. It cooks while you make the chicken, about 20 minutes.
 
-2. **Soften the onion.** Cut the chicken into cubes or strips. Fry the onion in the oil or butter until golden, about 5 minutes, then add the garlic for a moment.
+2. **Soften the onion.** Cut the chicken into cubes or strips. Fry the onion in the oil or butter until golden, about 5 minutes.
 
 3. **Brown the chicken and add paprika.** Add the chicken, season with salt and pepper and brown it on all sides, about 7 minutes. Take the pan off the heat and stir in the paprika; off the heat it won't scorch and turn bitter.
 
-4. **Simmer.** Stir in the tomato paste and pour in the stock. Cover and simmer gently for 15 minutes, until the chicken is tender.
+4. **Simmer.** Pour in the stock. Cover and simmer gently for 15 minutes, until the chicken is tender.
 
 5. **Thicken with cream.** Whisk the flour into a little of the cold cream until smooth, then stir it into the pan with the rest of the cream. Let it bubble for 5 minutes, stirring, until thickened.
 
