@@ -38,6 +38,8 @@ remark-math + rehype-katex for `$...$`/`$$...$$`. Fenced ` ```pseudocode ` block
 
 ### Recipes
 
+To add or change a recipe, follow the `add-recipe` skill (`.claude/skills/add-recipe/SKILL.md`): sourcing, conventions, pantry items, photos, verification.
+
 `RecipeLayout.astro` holds the page plus all of its client behaviour, with helpers in `src/utils/recipes.ts` (shared by build and browser, so it must not import `astro:content`):
 
 - **Servings scaling:** each amount renders as `.amt[data-base]` via `parseAmount` (numbers, `¾`, `4 ½`, `1/2`). Unparseable amounts ("1 package") show a `×n` hint instead. Text inside steps is never scaled.
