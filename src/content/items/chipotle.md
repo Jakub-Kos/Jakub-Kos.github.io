@@ -1,5 +1,6 @@
 ---
 name: "Chipotle in adobo"
+image: "../../assets/items/chipotle.svg"
 names:
   cs: "Chipotle v adobu"
   da: "Chipotle i adobo"

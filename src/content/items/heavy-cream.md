@@ -1,5 +1,6 @@
 ---
 name: "Heavy cream"
+image: "../../assets/items/heavy-cream.svg"
 names:
   cs: "Smetana ke šlehání"
   da: "Piskefløde"

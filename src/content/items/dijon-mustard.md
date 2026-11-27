@@ -1,5 +1,6 @@
 ---
 name: "Dijon mustard"
+image: "../../assets/items/dijon-mustard.svg"
 names:
   cs: "Dijonská hořčice"
   da: "Dijonsennep"

@@ -1,5 +1,6 @@
 ---
 name: "Sugar"
+image: "../../assets/items/sugar.svg"
 names:
   cs: "Cukr krupice"
   da: "Sukker"

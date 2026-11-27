@@ -1,5 +1,6 @@
 ---
 name: "Pumpkin seeds"
+image: "../../assets/items/pumpkin-seeds.svg"
 names:
   cs: "Dýňová semínka"
   da: "Græskarkerner"

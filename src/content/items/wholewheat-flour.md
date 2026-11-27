@@ -1,5 +1,6 @@
 ---
 name: "Wholewheat flour"
+image: "../../assets/items/wholewheat-flour.svg"
 names:
   cs: "Celozrnná pšeničná mouka"
   da: "Fuldkornshvedemel"

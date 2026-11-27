@@ -1,5 +1,6 @@
 ---
 name: "Garam masala"
+image: "../../assets/items/garam-masala.svg"
 names:
   cs: "Garam masala"
   da: "Garam masala"

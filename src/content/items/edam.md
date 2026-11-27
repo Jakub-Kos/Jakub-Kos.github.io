@@ -1,5 +1,6 @@
 ---
 name: "Edam cheese"
+image: "../../assets/items/edam.svg"
 names:
   cs: "Eidam"
   da: "Edamer"

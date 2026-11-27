@@ -1,5 +1,6 @@
 ---
 name: "Powdered sugar"
+image: "../../assets/items/powdered-sugar.svg"
 names:
   cs: "Moučkový cukr"
   da: "Flormelis"

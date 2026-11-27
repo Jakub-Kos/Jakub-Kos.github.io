@@ -1,5 +1,6 @@
 ---
 name: "Lemon zest"
+image: "../../assets/items/lemon-zest.svg"
 names:
   cs: "Citronová kůra"
   da: "Citronskal"

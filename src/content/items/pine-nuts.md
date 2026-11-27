@@ -1,5 +1,6 @@
 ---
 name: "Pine nuts"
+image: "../../assets/items/pine-nuts.svg"
 names:
   cs: "Piniové oříšky"
   da: "Pinjekerner"

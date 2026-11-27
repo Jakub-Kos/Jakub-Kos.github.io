@@ -1,5 +1,6 @@
 ---
 name: "Quark"
+image: "../../assets/items/tvaroh.svg"
 names:
   cs: "Tvaroh"
   da: "Kvark"

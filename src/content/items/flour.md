@@ -1,5 +1,6 @@
 ---
 name: "Flour"
+image: "../../assets/items/flour.svg"
 names:
   cs: "Hladká mouka"
   da: "Hvedemel"

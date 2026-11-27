@@ -1,5 +1,6 @@
 ---
 name: "Mushrooms"
+image: "../../assets/items/mushrooms.svg"
 names:
   cs: "Žampiony"
   da: "Champignon"

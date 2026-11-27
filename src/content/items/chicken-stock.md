@@ -1,5 +1,6 @@
 ---
 name: "Chicken stock"
+image: "../../assets/items/chicken-stock.svg"
 names:
   cs: "Kuřecí vývar"
   da: "Hønsebouillon"

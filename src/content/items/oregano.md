@@ -1,5 +1,6 @@
 ---
 name: "Dried oregano"
+image: "../../assets/items/oregano.svg"
 names:
   cs: "Oregano"
   da: "Oregano"

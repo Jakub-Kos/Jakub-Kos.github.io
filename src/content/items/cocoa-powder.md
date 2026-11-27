@@ -1,5 +1,6 @@
 ---
 name: "Cocoa powder"
+image: "../../assets/items/cocoa-powder.svg"
 names:
   cs: "Kakao"
   da: "Kakaopulver"

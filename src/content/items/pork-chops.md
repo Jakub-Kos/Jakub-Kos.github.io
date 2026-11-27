@@ -1,5 +1,6 @@
 ---
 name: "Pork chops"
+image: "../../assets/items/pork-chops.svg"
 names:
   cs: "Vepřové kotlety"
   da: "Svinekoteletter"

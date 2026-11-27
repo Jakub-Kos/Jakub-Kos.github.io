@@ -1,5 +1,6 @@
 ---
 name: "Feta"
+image: "../../assets/items/feta.svg"
 names:
   cs: "Balkánský sýr / feta"
   da: "Feta"

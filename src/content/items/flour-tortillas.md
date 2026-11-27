@@ -1,5 +1,6 @@
 ---
 name: "Flour tortillas"
+image: "../../assets/items/flour-tortillas.svg"
 names:
   cs: "Pšeničné tortilly"
   da: "Hvedetortillas"

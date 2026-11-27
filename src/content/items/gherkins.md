@@ -1,5 +1,6 @@
 ---
 name: "Pickled gherkins"
+image: "../../assets/items/gherkins.svg"
 names:
   cs: "Sterilované okurky"
   da: "Syltede agurker"

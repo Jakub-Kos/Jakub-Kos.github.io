@@ -1,5 +1,6 @@
 ---
 name: "Cornstarch or custard powder"
+image: "../../assets/items/cornstarch.svg"
 names:
   cs: "Škrob nebo vanilkový pudink"
   da: "Majsstivelse / vaniljecremepulver"

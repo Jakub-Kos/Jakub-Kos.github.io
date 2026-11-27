@@ -1,5 +1,6 @@
 ---
 name: "Onion"
+image: "../../assets/items/onion.svg"
 names:
   cs: "Cibule"
   da: "Løg"

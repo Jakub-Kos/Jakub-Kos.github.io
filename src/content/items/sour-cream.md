@@ -1,5 +1,6 @@
 ---
 name: "Sour cream"
+image: "../../assets/items/sour-cream.svg"
 names:
   cs: "Kysaná smetana"
   da: "Creme fraiche"

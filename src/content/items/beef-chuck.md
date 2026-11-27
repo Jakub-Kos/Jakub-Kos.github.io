@@ -1,5 +1,6 @@
 ---
 name: "Stewing beef (shin / chuck)"
+image: "../../assets/items/beef-chuck.svg"
 names:
   cs: "Hovězí kližka"
   da: "Okseskank / oksebov"

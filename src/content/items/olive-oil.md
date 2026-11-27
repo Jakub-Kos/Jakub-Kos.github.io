@@ -1,5 +1,6 @@
 ---
 name: "Olive oil"
+image: "../../assets/items/olive-oil.svg"
 names:
   cs: "Olivový olej"
   da: "Olivenolie"

@@ -1,5 +1,6 @@
 ---
 name: "Semi-coarse flour"
+image: "../../assets/items/semi-coarse-flour.svg"
 names:
   cs: "Polohrubá mouka"
 category: "Baking"

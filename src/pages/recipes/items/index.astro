@@ -7,6 +7,7 @@ import Footer from '../../../components/Footer.astro';
 import { getCollection } from 'astro:content';
 import LocalNames from '../../../components/LocalNames.astro';
 import { findItem } from '../../../utils/recipes';
+import { Image } from 'astro:assets';
 
 const items = await getCollection('items');
 const recipes = await getCollection('recipes', ({ data }) => !data.draft);
@@ -72,7 +73,9 @@ const categories = [...byCategory.keys()].sort((a, b) => (a === 'Other' ? 1 : b 
 				gap: 0.75rem;
 			}
 			.item-grid a {
-				display: block;
+				display: flex;
+				align-items: center;
+				gap: 0.75rem;
 				background: var(--recipe-cream);
 				border-radius: var(--recipe-radius);
 				padding: 0.75rem 1rem;
@@ -83,6 +86,25 @@ const categories = [...byCategory.keys()].sort((a, b) => (a === 'Other' ? 1 : b 
 			}
 			.item-grid a:hover {
 				box-shadow: 0 4px 12px rgba(41, 37, 33, 0.12);
+			}
+			.text {
+				min-width: 0;
+			}
+			.thumb {
+				flex: none;
+				width: 64px;
+				height: 64px;
+				border-radius: 10px;
+				object-fit: contain;
+				padding: 6px;
+				box-sizing: border-box;
+				background: white;
+			}
+			.thumb.empty {
+				display: grid;
+				place-items: center;
+				font-size: 1.5rem;
+				opacity: 0.35;
 			}
 			.name {
 				font-weight: 700;
@@ -119,12 +141,19 @@ const categories = [...byCategory.keys()].sort((a, b) => (a === 'Other' ? 1 : b 
 							return (
 								<li data-search={[item.data.name, ...Object.values(item.data.names), ...item.data.aliases].filter(Boolean).join(' ').toLowerCase()}>
 									<a href={`/recipes/items/${item.id}`}>
+										{item.data.image ? (
+											<Image class="thumb" src={item.data.image} alt="" width={128} height={128} loading="lazy" />
+										) : (
+											<div class="thumb empty" aria-hidden="true">🧺</div>
+										)}
+										<div class="text">
 										<div class="name">{item.data.name}</div>
 										<div class="names"><LocalNames names={item.data.names} stacked /></div>
 										<div class="meta">
 											{count > 0 ? `${count} recipe${count === 1 ? '' : 's'}` : 'not used yet'}
 											{item.data.where.length > 0 && ` · ${[...new Set(item.data.where.map((w) => w.city ?? w.store))].join(', ')}`}
 											{item.data.substitutes.length > 0 && ' · has substitutes'}
+										</div>
 										</div>
 									</a>
 								</li>

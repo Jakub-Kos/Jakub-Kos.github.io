@@ -1,5 +1,6 @@
 ---
 name: "Pecorino"
+image: "../../assets/items/pecorino.svg"
 names:
   cs: "Pecorino"
   da: "Pecorino"

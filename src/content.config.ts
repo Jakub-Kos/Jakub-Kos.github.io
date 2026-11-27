@@ -136,8 +136,12 @@ const recipes = defineCollection({
 // called in Danish and where do I get it?".
 const items = defineCollection({
 	loader: glob({ base: './src/content/items', pattern: '**/*.{md,mdx}' }),
-	schema: z.object({
+	schema: ({ image }) => z.object({
 		name: z.string(),
+		// Illustration of the item (src/assets/items/<id>.svg, from OpenMoji,
+		// CC BY-SA 4.0, credited on the item page), shown on the pantry cards,
+		// the item page and in the popover on recipe pages.
+		image: image().optional(),
 		// e.g. { cs: "Hladká mouka", da: "Hvedemel" }.
 		names: localizedNames,
 		// Other names recipe ingredients may use for this item; matched

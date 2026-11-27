@@ -1,5 +1,6 @@
 ---
 name: "Cumin"
+image: "../../assets/items/cumin.svg"
 names:
   cs: "Římský kmín"
   da: "Spidskommen"

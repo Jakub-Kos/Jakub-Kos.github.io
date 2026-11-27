@@ -1,5 +1,6 @@
 ---
 name: "Fresh yeast"
+image: "../../assets/items/fresh-yeast.svg"
 names:
   cs: "Droždí"
   da: "Gær"

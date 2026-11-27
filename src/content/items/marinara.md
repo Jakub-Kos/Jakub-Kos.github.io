@@ -1,5 +1,6 @@
 ---
 name: "Marinara sauce"
+image: "../../assets/items/marinara.svg"
 names:
   cs: "Rajčatová omáčka"
   da: "Tomatsauce"

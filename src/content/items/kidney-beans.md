@@ -1,5 +1,6 @@
 ---
 name: "Kidney beans"
+image: "../../assets/items/kidney-beans.svg"
 names:
   cs: "Červené fazole"
   da: "Kidneybønner"

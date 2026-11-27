@@ -1,5 +1,6 @@
 ---
 name: "Pork shoulder"
+image: "../../assets/items/pork-shoulder.svg"
 names:
   cs: "Vepřová plec"
   da: "Svinebov"

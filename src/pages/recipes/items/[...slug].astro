@@ -9,6 +9,7 @@ import ItemDetails from '../../../components/ItemDetails.astro';
 import LocalNames from '../../../components/LocalNames.astro';
 import { getCollection, render } from 'astro:content';
 import { findItem } from '../../../utils/recipes';
+import { Image } from 'astro:assets';
 
 export async function getStaticPaths() {
 	const items = await getCollection('items');
@@ -26,7 +27,7 @@ export async function getStaticPaths() {
 
 const { item, usedIn } = Astro.props;
 const { Content } = await render(item);
-const { name, names, aliases, category, description } = item.data;
+const { name, names, aliases, category, description, image } = item.data;
 const otherNames = Object.values(names).filter((n) => n.toLowerCase() !== name.toLowerCase());
 ---
 <!doctype html>
@@ -50,6 +51,32 @@ const otherNames = Object.values(names).filter((n) => n.toLowerCase() !== name.t
 			}
 			h1 {
 				margin-bottom: 0.2rem;
+			}
+			.head {
+				display: flex;
+				gap: 1.25rem;
+				align-items: center;
+			}
+			.photo {
+				flex: none;
+				width: 160px;
+				height: 160px;
+				border-radius: var(--recipe-radius);
+				object-fit: contain;
+				padding: 14px;
+				box-sizing: border-box;
+				background: white;
+			}
+			.credit {
+				font-size: 0.72rem;
+				color: var(--recipe-soft-ink);
+				margin: 0.3rem 0 0;
+			}
+			@media (max-width: 520px) {
+				.head {
+					flex-direction: column;
+					align-items: flex-start;
+				}
 			}
 			h2 {
 				font-size: 1.25rem;
@@ -80,15 +107,27 @@ const otherNames = Object.values(names).filter((n) => n.toLowerCase() !== name.t
 		<Header />
 		<main data-pagefind-body>
 			<p><a href="/recipes/items">&larr; pantry</a></p>
-			<h1>{name}</h1>
-			<div class="names"><LocalNames names={names} /></div>
-			{(aliases.length > 0 || category) && (
-				<p class="aka">
-					{category}
-					{category && aliases.length > 0 && ' · '}
-					{aliases.length > 0 && `also: ${aliases.join(', ')}`}
-				</p>
-			)}
+			<div class="head">
+				{image && (
+					<div>
+						<Image class="photo" src={image} alt={name} width={320} height={320} />
+						<p class="credit">
+							Icon: <a href="https://openmoji.org" target="_blank" rel="noopener">OpenMoji</a>, CC BY-SA 4.0
+						</p>
+					</div>
+				)}
+				<div>
+					<h1>{name}</h1>
+					<div class="names"><LocalNames names={names} /></div>
+					{(aliases.length > 0 || category) && (
+						<p class="aka">
+							{category}
+							{category && aliases.length > 0 && ' · '}
+							{aliases.length > 0 && `also: ${aliases.join(', ')}`}
+						</p>
+					)}
+				</div>
+			</div>
 			{description && <p class="description">{description}</p>}
 
 			<ItemDetails item={item} />

@@ -1,5 +1,6 @@
 ---
 name: "Dill"
+image: "../../assets/items/dill.svg"
 names:
   cs: "Kopr"
   da: "Dild"

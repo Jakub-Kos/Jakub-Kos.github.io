@@ -1,5 +1,6 @@
 ---
 name: "Carrot"
+image: "../../assets/items/carrot.svg"
 names:
   cs: "Mrkev"
   da: "Gulerod"

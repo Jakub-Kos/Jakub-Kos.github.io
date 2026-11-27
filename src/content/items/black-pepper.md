@@ -1,5 +1,6 @@
 ---
 name: "Black pepper"
+image: "../../assets/items/black-pepper.svg"
 names:
   cs: "Pepř"
   da: "Peber"

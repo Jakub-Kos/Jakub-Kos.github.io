@@ -1,5 +1,6 @@
 ---
 name: "Tomatoes"
+image: "../../assets/items/tomatoes.svg"
 names:
   cs: "Rajčata"
   da: "Tomater"

@@ -1,5 +1,6 @@
 ---
 name: "Cinnamon"
+image: "../../assets/items/cinnamon.svg"
 names:
   cs: "Skořice"
   da: "Kanel"

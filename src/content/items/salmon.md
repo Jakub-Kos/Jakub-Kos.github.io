@@ -1,5 +1,6 @@
 ---
 name: "Salmon fillet"
+image: "../../assets/items/salmon.svg"
 names:
   cs: "Lososový filet"
   da: "Laksefilet"

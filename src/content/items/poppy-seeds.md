@@ -1,5 +1,6 @@
 ---
 name: "Ground poppy seeds"
+image: "../../assets/items/poppy-seeds.svg"
 names:
   cs: "Mletý mák"
   da: "Malet birkes"

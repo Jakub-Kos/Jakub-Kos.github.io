@@ -1,5 +1,6 @@
 ---
 name: "Caraway seeds"
+image: "../../assets/items/caraway.svg"
 names:
   cs: "Kmín"
   da: "Kommen"

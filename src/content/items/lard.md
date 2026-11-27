@@ -1,5 +1,6 @@
 ---
 name: "Lard"
+image: "../../assets/items/lard.svg"
 names:
   cs: "Sádlo"
   da: "Svinefedt"

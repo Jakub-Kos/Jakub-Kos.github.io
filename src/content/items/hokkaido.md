@@ -1,5 +1,6 @@
 ---
 name: "Hokkaido squash"
+image: "../../assets/items/hokkaido.svg"
 names:
   cs: "Dýně hokkaido"
   da: "Hokkaidogræskar"

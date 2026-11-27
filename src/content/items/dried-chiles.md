@@ -1,5 +1,6 @@
 ---
 name: "Dried chiles (ancho, guajillo)"
+image: "../../assets/items/dried-chiles.svg"
 names:
   cs: "Sušené chilli papričky"
   da: "Tørrede chilier"

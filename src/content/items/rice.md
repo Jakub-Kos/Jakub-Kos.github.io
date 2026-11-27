@@ -1,5 +1,6 @@
 ---
 name: "Rice"
+image: "../../assets/items/rice.svg"
 names:
   cs: "Rýže"
   da: "Ris"

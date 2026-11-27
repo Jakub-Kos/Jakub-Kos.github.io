@@ -1,5 +1,6 @@
 ---
 name: "Basil"
+image: "../../assets/items/basil.svg"
 names:
   cs: "Bazalka"
   da: "Basilikum"

@@ -1,5 +1,6 @@
 ---
 name: "Milk"
+image: "../../assets/items/milk.svg"
 names:
   cs: "Mléko"
   da: "Mælk"

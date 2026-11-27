@@ -1,5 +1,6 @@
 ---
 name: "Corn tortillas"
+image: "../../assets/items/corn-tortillas.svg"
 names:
   cs: "Kukuřičné tortilly"
   da: "Majstortillas"

@@ -1,5 +1,6 @@
 ---
 name: "Dark chocolate"
+image: "../../assets/items/dark-chocolate.svg"
 names:
   cs: "Hořká čokoláda"
   da: "Mørk chokolade"

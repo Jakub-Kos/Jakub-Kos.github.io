@@ -1,5 +1,6 @@
 ---
 name: "Crushed tomatoes"
+image: "../../assets/items/crushed-tomatoes.svg"
 names:
   cs: "Drcená rajčata"
   da: "Hakkede tomater"

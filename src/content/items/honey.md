@@ -1,5 +1,6 @@
 ---
 name: "Honey"
+image: "../../assets/items/honey.svg"
 names:
   cs: "Med"
   da: "Honning"

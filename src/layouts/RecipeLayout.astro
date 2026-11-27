@@ -340,6 +340,22 @@ const jsonLdHtml = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
 				font-size: 1rem;
 				cursor: pointer;
 			}
+			.item-pop-head {
+				display: flex;
+				gap: 0.8rem;
+				align-items: center;
+				padding-right: 1.2rem;
+			}
+			.item-pop-img {
+				flex: none;
+				width: 64px;
+				height: 64px;
+				border-radius: 10px;
+				object-fit: contain;
+				padding: 6px;
+				box-sizing: border-box;
+				background: white;
+			}
 			.item-pop-name {
 				font-family: var(--recipe-title-font);
 				font-size: 1.3rem;
@@ -1012,8 +1028,13 @@ const jsonLdHtml = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
 		{popoverItems.map((item) => (
 			<div class="item-pop" id={popoverId(item)} popover>
 				<button type="button" class="item-pop-close" popovertarget={popoverId(item)} popovertargetaction="hide" aria-label="Close">✕</button>
-				<p class="item-pop-name">{item.data.name}</p>
-				<div class="item-pop-names"><LocalNames names={item.data.names} /></div>
+				<div class="item-pop-head">
+					{item.data.image && <Image class="item-pop-img" src={item.data.image} alt="" width={128} height={128} loading="lazy" />}
+					<div>
+						<p class="item-pop-name">{item.data.name}</p>
+						<div class="item-pop-names"><LocalNames names={item.data.names} /></div>
+					</div>
+				</div>
 				{item.data.description && <p class="item-pop-desc">{item.data.description}</p>}
 				<ItemDetails item={item} compact />
 				<a class="item-pop-more" href={`/recipes/items/${item.id}`}>Item page →</a>

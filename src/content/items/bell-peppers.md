@@ -1,5 +1,6 @@
 ---
 name: "Bell peppers"
+image: "../../assets/items/bell-peppers.svg"
 names:
   cs: "Paprika (zelenina)"
   da: "Peberfrugt"

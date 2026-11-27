@@ -1,5 +1,6 @@
 ---
 name: "Ground beef"
+image: "../../assets/items/ground-beef.svg"
 names:
   cs: "Mleté hovězí"
   da: "Hakket oksekød"

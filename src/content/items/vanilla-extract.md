@@ -1,5 +1,6 @@
 ---
 name: "Vanilla extract"
+image: "../../assets/items/vanilla-extract.svg"
 names:
   cs: "Vanilkový extrakt"
   da: "Vaniljeekstrakt"

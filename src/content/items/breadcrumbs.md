@@ -1,5 +1,6 @@
 ---
 name: "Breadcrumbs"
+image: "../../assets/items/breadcrumbs.svg"
 names:
   cs: "Strouhanka"
   da: "Rasp"

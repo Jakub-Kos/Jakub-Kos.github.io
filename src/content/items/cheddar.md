@@ -1,5 +1,6 @@
 ---
 name: "Cheddar"
+image: "../../assets/items/cheddar.svg"
 names:
   cs: "Čedar"
   da: "Cheddar"

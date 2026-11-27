@@ -1,5 +1,6 @@
 ---
 name: "Neutral oil"
+image: "../../assets/items/neutral-oil.svg"
 names:
   cs: "Řepkový olej"
   da: "Rapsolie"

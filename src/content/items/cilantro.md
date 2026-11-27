@@ -1,5 +1,6 @@
 ---
 name: "Cilantro"
+image: "../../assets/items/cilantro.svg"
 names:
   cs: "Koriandr"
   da: "Koriander"

@@ -1,5 +1,6 @@
 ---
 name: "Sweet potatoes"
+image: "../../assets/items/sweet-potatoes.svg"
 names:
   cs: "Batáty"
   da: "Søde kartofler"

@@ -1,5 +1,6 @@
 ---
 name: "Vegetable stock"
+image: "../../assets/items/vegetable-stock.svg"
 names:
   cs: "Zeleninový vývar"
   da: "Grøntsagsbouillon"

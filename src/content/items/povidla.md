@@ -1,5 +1,6 @@
 ---
 name: "Plum butter (povidla)"
+image: "../../assets/items/povidla.svg"
 names:
   cs: "Povidla"
   da: "Blommesmør"

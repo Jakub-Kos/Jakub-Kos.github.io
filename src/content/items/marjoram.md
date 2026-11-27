@@ -1,5 +1,6 @@
 ---
 name: "Dried marjoram"
+image: "../../assets/items/marjoram.svg"
 names:
   cs: "Majoránka"
   da: "Merian"

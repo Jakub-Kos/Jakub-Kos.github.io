@@ -1,5 +1,6 @@
 ---
 name: "Celery"
+image: "../../assets/items/celery.svg"
 names:
   cs: "Řapíkatý celer"
   da: "Bladselleri"
